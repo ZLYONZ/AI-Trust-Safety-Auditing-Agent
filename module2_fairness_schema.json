@@ -1,0 +1,212 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Module 2: Fairness & Bias Assessment Schema",
+  "description": "Machine-readable audit framework for detecting discriminatory outcomes in AI-driven financial decisions",
+  "version": "2.0",
+  "module_id": "M2_FAIRNESS",
+  "regulatory_alignment": {
+    "nist_ai_rmf": ["MEASURE-2.10", "MEASURE-2.11 (Fair with Harmful Bias Managed)"],
+    "nist_sp_1270": ["Bias identification and management"],
+    "eu_ai_act": ["Article 10 (Data Governance - representativeness)"],
+    "coso": ["Control Environment - ethical values"]
+  },
+  
+  "evaluation_criteria": [
+    {
+      "criterion_id": "F2.1",
+      "criterion_name": "Demographic Parity in Financial Decisions",
+      "description": "AI-driven financial decisions (expense approvals, credit scoring, vendor selection) exhibit no systematic bias across protected demographics",
+      "iqbal_reference": "Fairness & Bias Assessment - Question 1",
+      "check_method": "Analyze approval rates across gender/race/age groups; test for disparate impact",
+      "pass_criteria": "Demographic parity within ±5% across protected groups, equalized odds metrics meet thresholds, training data representativeness confirmed",
+      
+      "evidence_required": [
+        {
+          "evidence_id": "F2.1-E1",
+          "evidence_type": "fairness_metrics_report",
+          "evidence_name": "Fairness Metrics Analysis",
+          "format": ["JSON", "CSV", "Excel"],
+          "required_fields": [
+            "protected_attribute",
+            "group_a",
+            "group_b",
+            "metric_name",
+            "metric_value",
+            "confidence_interval",
+            "pass_threshold",
+            "result"
+          ],
+          "required_metrics": [
+            "demographic_parity",
+            "equalized_odds",
+            "disparate_impact_ratio",
+            "statistical_parity_difference"
+          ],
+          "statistical_requirements": {
+            "confidence_interval": "95%",
+            "minimum_sample_size": 1000,
+            "sample_size_per_group": "1000 transactions per protected group or entire population if smaller"
+          },
+          "pass_thresholds": {
+            "demographic_parity": "within ±5%",
+            "disparate_impact_ratio": "0.8-1.25 (per EEOC guidance)",
+            "equalized_odds": "False positive rate and false negative rate within ±5% across groups"
+          }
+        },
+        {
+          "evidence_id": "F2.1-E2",
+          "evidence_type": "training_data_analysis",
+          "evidence_name": "Training Data Representativeness Analysis",
+          "format": ["Statistical_Report", "PDF"],
+          "required_comparisons": [
+            "gender_distribution",
+            "race_ethnicity_distribution",
+            "age_distribution",
+            "geographic_distribution"
+          ],
+          "representativeness_standard": "Training data demographics within ±10% of population distribution; justify if not (e.g., intentional oversampling)"
+        }
+      ],
+      
+      "scoring": {
+        "scale_type": "multi_metric_composite",
+        "calculation": "Average of pass/fail across all required metrics",
+        "components": [
+          {"metric": "demographic_parity", "weight": 0.30},
+          {"metric": "equalized_odds", "weight": 0.30},
+          {"metric": "disparate_impact", "weight": 0.25},
+          {"metric": "training_data_representativeness", "weight": 0.15}
+        ],
+        "pass_threshold": 0.80
+      },
+      
+      "severity_mapping": {
+        "score_range": [0.0, 0.6],
+        "sox_classification": "Significant Deficiency",
+        "justification": "Systematic bias in financial decisions creates regulatory penalties, litigation risk, and reputation damage",
+        "financial_impact_categories": [
+          "regulatory_penalties (fair lending violations, EU AI Act fines)",
+          "litigation_risk (class action settlements)",
+          "reputation_damage (customer attrition)",
+          "operational_remediation (model retraining, customer compensation)"
+        ],
+        "regulatory_mapping": {
+          "nist_ai_rmf": "MEASURE-2.10, 2.11 - Fair with Harmful Bias Managed not achieved",
+          "nist_sp_1270": "Bias identification/management deficiency",
+          "eu_ai_act": "Article 10 violation if training data unrepresentative"
+        }
+      }
+    },
+    
+    {
+      "criterion_id": "F2.2",
+      "criterion_name": "Bias Detection Monitoring",
+      "description": "Ongoing monitoring system detecting emerging bias in production AI systems",
+      "iqbal_reference": "Fairness & Bias Assessment - Question 2",
+      "check_method": "Review bias monitoring dashboards, alert configurations, response procedures",
+      "pass_criteria": "Bias metrics monitored monthly minimum, alerts configured, documented response to alerts",
+      
+      "evidence_required": [
+        {
+          "evidence_id": "F2.2-E1",
+          "evidence_type": "monitoring_logs",
+          "evidence_name": "Bias Monitoring Time-Series Data",
+          "format": ["CSV", "JSON"],
+          "required_fields": [
+            "timestamp",
+            "model_name",
+            "protected_attribute",
+            "metric_name",
+            "metric_value",
+            "threshold",
+            "alert_triggered",
+            "response_action"
+          ],
+          "monitoring_frequency": "Monthly minimum for production models",
+          "alert_threshold": "Demographic parity exceeds ±5% or disparate impact outside 0.8-1.25"
+        }
+      ],
+      
+      "scoring": {
+        "scale_type": "operational_effectiveness",
+        "components": [
+          {"component": "monitoring_coverage", "weight": 0.4, "calculation": "Models monitored / Total models"},
+          {"component": "alert_response_rate", "weight": 0.4, "calculation": "Alerts addressed / Total alerts"},
+          {"component": "monitoring_frequency", "weight": 0.2, "calculation": "Actual frequency / Required frequency"}
+        ]
+      },
+      
+      "severity_mapping": {
+        "score_range": [0.0, 0.7],
+        "sox_classification": "Control Deficiency",
+        "justification": "Without ongoing bias monitoring, organization cannot detect emerging discriminatory patterns"
+      }
+    },
+    
+    {
+      "criterion_id": "F2.3",
+      "criterion_name": "Bias Mitigation Procedures",
+      "description": "Documented procedures for bias mitigation when bias detected",
+      "iqbal_reference": "Fairness & Bias Assessment - Question 3",
+      "check_method": "Review bias mitigation playbook, test historical bias incident responses",
+      "pass_criteria": "Documented mitigation procedures exist, procedures tested annually, bias incidents resolved within SLA",
+      
+      "evidence_required": [
+        {
+          "evidence_id": "F2.3-E1",
+          "evidence_type": "procedure",
+          "evidence_name": "Bias Mitigation Playbook",
+          "format": ["PDF", "DOCX"],
+          "required_content": [
+            "bias_investigation_steps",
+            "data_rebalancing_techniques",
+            "model_retraining_criteria",
+            "fairness_constraint_implementation",
+            "affected_decision_remediation",
+            "stakeholder_communication_plan"
+          ]
+        }
+      ],
+      
+      "scoring": {
+        "scale_type": "binary_with_quality",
+        "pass_score": 1.0,
+        "quality_deductions": [
+          {"missing_technique": "data_rebalancing", "deduction": 0.15},
+          {"missing_technique": "fairness_constraints", "deduction": 0.15},
+          {"no_stakeholder_communication": true, "deduction": 0.20}
+        ]
+      },
+      
+      "severity_mapping": {
+        "score_range": [0.0, 0.5],
+        "sox_classification": "Significant Deficiency",
+        "justification": "Without bias mitigation procedures, detected bias may not be remediated timely"
+      }
+    }
+  ],
+  
+  "aggregate_scoring": {
+    "method": "weighted_average",
+    "weights": {
+      "F2.1": 0.50,
+      "F2.2": 0.30,
+      "F2.3": 0.20
+    },
+    "overall_pass_threshold": 0.75
+  },
+  
+  "interdependency_triggers": [
+    {
+      "trigger_id": "T2.1",
+      "trigger_condition": "F2.1 detects systematic bias (score < 0.6)",
+      "triggered_module": "M5_ACCURACY",
+      "action": "Analyze whether accuracy varies across demographic groups",
+      "investigation_questions": [
+        "Does model predict accurately for Group A but poorly for Group B?",
+        "Is this fair but uniformly inaccurate OR accurate but biased?"
+      ],
+      "rationale": "Distinguishes 'fair but inaccurate model' (needs retraining) from 'accurate but biased model' (needs bias mitigation)"
+    }
+  ]
+}
