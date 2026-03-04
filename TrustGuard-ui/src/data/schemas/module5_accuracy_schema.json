@@ -1,0 +1,320 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Module 5: Accuracy & Performance Monitoring Schema",
+  "description": "Machine-readable audit framework for evaluating AI model accuracy and drift detection in AIS",
+  "version": "2.0",
+  "module_id": "M5_ACCURACY",
+  "regulatory_alignment": {
+    "nist_ai_rmf": ["MEASURE-2.1", "MEASURE-2.2", "MEASURE-2.3", "MEASURE-2.7", "MEASURE-2.8"],
+    "coso": ["Monitoring Activities"],
+    "gaap": ["ASC 606 reasonableness", "ASC 815 estimate evaluation"],
+    "pcaob": ["AS 2501 - Auditing Accounting Estimates"]
+  },
+  
+  "evaluation_criteria": [
+    {
+      "criterion_id": "A5.1",
+      "criterion_name": "Model Validation Documentation",
+      "description": "Comprehensive validation report demonstrating AI model accuracy on holdout datasets",
+      "iqbal_reference": "Accuracy & Drift Monitoring - Question 1",
+      "check_method": "Review confusion matrices, performance trends, ROC curves, validation against real-world datasets",
+      "pass_criteria": "Model accuracy meets materiality-based thresholds, validation on representative holdout set (min 20%), all required metrics documented",
+      
+      "evidence_required": [
+        {
+          "evidence_id": "A5.1-E1",
+          "evidence_type": "validation_report",
+          "evidence_name": "Model Validation Report",
+          "format": ["PDF", "DOCX", "Jupyter_Notebook"],
+          "required_sections": [
+            "confusion_matrix",
+            "roc_curve",
+            "precision_recall_curve",
+            "feature_importance",
+            "out_of_sample_testing"
+          ],
+          "validation_dataset_requirements": {
+            "minimum_size_percentage": 0.20,
+            "temporal_split_required": true,
+            "production_distribution_representative": true
+          },
+          "required_metrics": [
+            {
+              "metric_name": "accuracy",
+              "confidence_interval": "95%",
+              "materiality_adjusted": true
+            },
+            {
+              "metric_name": "precision",
+              "confidence_interval": "95%"
+            },
+            {
+              "metric_name": "recall",
+              "confidence_interval": "95%"
+            },
+            {
+              "metric_name": "f1_score",
+              "confidence_interval": "95%"
+            },
+            {
+              "metric_name": "auc_roc",
+              "confidence_interval": "95%"
+            }
+          ]
+        }
+      ],
+      
+      "scoring": {
+        "scale_type": "materiality_based",
+        "calculation": {
+          "method": "financial_impact_assessment",
+          "formula": "Potential_Misstatement = Error_Rate × Transaction_Value × Bias_Factor",
+          "thresholds": {
+            "clearly_trivial": "< 3% of performance materiality",
+            "performance_materiality": "50-75% of overall materiality",
+            "overall_materiality": "0.5-1% of total assets OR 5% of pre-tax income (lower)"
+          }
+        },
+        "example": {
+          "error_rate": 0.02,
+          "transaction_value": 500000000,
+          "bias_factor": 3.0,
+          "potential_misstatement": 30000000,
+          "materiality_comparison": "6x overall materiality if materiality=$5M",
+          "classification": "Material Weakness"
+        }
+      },
+      
+      "severity_mapping": {
+        "materiality_based_classification": {
+          "below_clearly_trivial": {
+            "sox_classification": "Pass - No deficiency",
+            "action": "Document and monitor"
+          },
+          "between_trivial_and_performance": {
+            "sox_classification": "Control Deficiency",
+            "action": "Aggregate with other deficiencies; monitor"
+          },
+          "between_performance_and_overall": {
+            "sox_classification": "Significant Deficiency",
+            "action": "Report to audit committee; remediate"
+          },
+          "exceeds_overall_materiality": {
+            "sox_classification": "Material Weakness",
+            "action": "Disclose in 10-K; immediate remediation required",
+            "regulatory_impact": "Likely qualified audit opinion"
+          }
+        }
+      }
+    },
+    
+    {
+      "criterion_id": "A5.2",
+      "criterion_name": "Drift Detection and Monitoring",
+      "description": "Continuous monitoring system detecting model drift (concept, data, label drift)",
+      "iqbal_reference": "Accuracy & Drift Monitoring - Question 2",
+      "check_method": "Review drift detection logs, alert thresholds, response procedures, retraining documentation",
+      "pass_criteria": "Drift monitoring operational (daily for production models), alerts configured, documented response procedures, retraining when needed",
+      
+      "evidence_required": [
+        {
+          "evidence_id": "A5.2-E1",
+          "evidence_type": "monitoring_logs",
+          "evidence_name": "Drift Detection Time-Series Logs",
+          "format": ["CSV", "JSON", "Database_Export"],
+          "required_fields": [
+            "timestamp",
+            "metric_name",
+            "metric_value",
+            "baseline_value",
+            "drift_percentage",
+            "alert_triggered",
+            "response_action"
+          ],
+          "monitoring_frequency": {
+            "production_critical_models": "daily",
+            "production_standard_models": "weekly",
+            "non_critical_models": "weekly"
+          },
+          "alert_thresholds": {
+            "investigation_trigger": ">5% drift",
+            "retraining_consideration": ">10% drift",
+            "immediate_review": ">15% drift"
+          },
+          "minimum_log_retention": "12 months"
+        },
+        {
+          "evidence_id": "A5.2-E2",
+          "evidence_type": "procedure",
+          "evidence_name": "Drift Response Procedure",
+          "format": ["PDF", "DOCX"],
+          "required_content": [
+            "drift_investigation_steps",
+            "retraining_decision_criteria",
+            "model_replacement_criteria",
+            "escalation_procedures",
+            "documentation_requirements"
+          ]
+        }
+      ],
+      
+      "scoring": {
+        "scale_type": "operational_effectiveness",
+        "components": [
+          {
+            "component": "monitoring_coverage",
+            "weight": 0.3,
+            "calculation": "Models monitored / Total models in production"
+          },
+          {
+            "component": "alert_response_rate",
+            "weight": 0.4,
+            "calculation": "Alerts with documented response / Total alerts triggered"
+          },
+          {
+            "component": "retraining_timeliness",
+            "weight": 0.3,
+            "calculation": "Models retrained within SLA / Models requiring retraining"
+          }
+        ],
+        "pass_threshold": 0.85
+      },
+      
+      "severity_mapping": {
+        "score_range": [0.0, 0.7],
+        "sox_classification": "Significant Deficiency",
+        "justification": "Inadequate drift monitoring allows degraded models to produce unreliable financial estimates",
+        "financial_impact": "Cumulative errors over time may exceed materiality",
+        "regulatory_mapping": {
+          "nist_measure": "MEASURE-2.7, MEASURE-2.8 not adequately implemented",
+          "coso": "Monitoring Activities deficiency",
+          "gaap": "ASC 606/815 estimate reasonableness cannot be assured"
+        }
+      }
+    },
+    
+    {
+      "criterion_id": "A5.3",
+      "criterion_name": "Performance Metrics Alignment with Financial Materiality",
+      "description": "AI performance metrics explicitly linked to financial statement impact thresholds",
+      "iqbal_reference": "Accuracy & Drift Monitoring - Question 3",
+      "check_method": "Review performance monitoring dashboards, materiality calculations, escalation procedures",
+      "pass_criteria": "Performance metrics translated to dollar impact, escalation when materiality thresholds approached, documented in management reports",
+      
+      "evidence_required": [
+        {
+          "evidence_id": "A5.3-E1",
+          "evidence_type": "dashboard",
+          "evidence_name": "AI Performance Monitoring Dashboard",
+          "format": ["Screenshot", "PowerBI_Export", "Tableau_Workbook"],
+          "required_visualizations": [
+            "accuracy_trend_over_time",
+            "error_rate_by_transaction_type",
+            "financial_impact_estimation",
+            "materiality_threshold_indicators",
+            "alert_status_summary"
+          ]
+        },
+        {
+          "evidence_id": "A5.3-E2",
+          "evidence_type": "calculation",
+          "evidence_name": "Materiality Impact Calculations",
+          "format": ["Excel", "Python_Script"],
+          "required_inputs": [
+            "overall_materiality",
+            "performance_materiality",
+            "clearly_trivial_threshold",
+            "model_error_rate",
+            "affected_transaction_volume",
+            "bias_concentration_factor"
+          ],
+          "required_outputs": [
+            "potential_misstatement_amount",
+            "materiality_multiple",
+            "sox_classification",
+            "confidence_interval"
+          ]
+        }
+      ],
+      
+      "scoring": {
+        "scale_type": "binary_with_evidence_quality",
+        "pass_criteria": [
+          "materiality_calculations_documented",
+          "performance_metrics_linked_to_financial_impact",
+          "escalation_procedures_defined",
+          "management_reporting_includes_materiality_analysis"
+        ],
+        "evidence_quality_factors": [
+          "calculation_methodology_validated",
+          "conservative_assumptions_used",
+          "confidence_intervals_provided",
+          "third_party_review_completed"
+        ]
+      },
+      
+      "severity_mapping": {
+        "score_range": [0.0, 0.5],
+        "sox_classification": "Significant Deficiency",
+        "justification": "Without materiality-linked metrics, organization cannot prioritize AI risks appropriately",
+        "audit_implication": "Auditors cannot assess whether AI errors cause material misstatement"
+      }
+    }
+  ],
+  
+  "aggregate_scoring": {
+    "method": "minimum_threshold_with_weighted_average",
+    "critical_criteria": ["A5.1"],
+    "critical_minimum": 0.75,
+    "weights": {
+      "A5.1": 0.50,
+      "A5.2": 0.30,
+      "A5.3": 0.20
+    },
+    "overall_pass_threshold": 0.80,
+    "note": "If A5.1 (Model Validation) < 0.75, overall module fails regardless of other scores"
+  },
+  
+  "interdependency_triggers": [
+    {
+      "trigger_id": "T5.1",
+      "trigger_condition": "A5.2 detects drift >10%",
+      "triggered_module": "M4_EXPLAINABILITY",
+      "action": "Perform detailed explainability review to determine if drift is concept drift (explanations still valid) or model breakdown (explanations invalid)",
+      "rationale": "Determines whether model needs retraining vs. complete replacement based on explanation validity"
+    },
+    {
+      "trigger_id": "T5.2",
+      "trigger_condition": "A5.1 materiality impact exceeds overall materiality",
+      "triggered_module": "M1_GOVERNANCE",
+      "action": "Investigate governance root cause: Why was inaccurate model deployed? Control failure?",
+      "rationale": "Material accuracy issues may indicate systemic governance breakdown requiring Material Weakness classification"
+    }
+  ],
+  
+  "gaap_specific_requirements": {
+    "asc_606_revenue_recognition": {
+      "applicable_when": "AI system used for contract analysis, performance obligation identification, or variable consideration estimation",
+      "additional_evidence": [
+        {
+          "evidence_type": "contract_analysis_validation",
+          "sample_size": "Minimum 30 contracts spanning revenue spectrum",
+          "validation_requirement": "Independent review confirming AI correctly identified performance obligations per ASC 606 criteria"
+        }
+      ],
+      "accuracy_threshold": "99.5% for contracts >$1M, 97% for contracts <$1M"
+    },
+    "asc_815_financial_instruments": {
+      "applicable_when": "AI system used for credit risk scoring, expected credit loss (CECL) estimation, or fair value measurement",
+      "additional_evidence": [
+        {
+          "evidence_type": "credit_model_validation",
+          "regulatory_standard": "SR 11-7 (Model Risk Management Guidance)",
+          "validation_frequency": "Annual comprehensive, quarterly performance monitoring",
+          "backtesting_requirement": "Compare AI predictions to actual credit losses over 3-year period"
+        }
+      ],
+      "pcaob_as_2501_compliance": "Explanations must enable auditors to evaluate estimate reasonableness and develop independent expectation"
+    }
+  }
+}
