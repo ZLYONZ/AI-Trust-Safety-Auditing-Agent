@@ -1,0 +1,390 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Module 2: Fairness & Bias Evaluation Schema",
+  "description": "Evaluates AI system fairness, bias detection, discrimination prevention, and compliance with fairness regulations for AI-based Accounting Information Systems",
+  "version": "3.1",
+  "last_updated": "2026-03-07",
+  "module_id": "M2_FAIRNESS",
+  "module_name": "Fairness & Bias",
+  
+  "evaluation_criteria": [
+    {
+      "criterion_id": "F2.1",
+      "criterion_name": "Fairness Metrics & Special Category Data Compliance",
+      "iqbal_reference": "Fairness Audit - Question 1",
+      "description": "Validates fairness metrics compliance (demographic parity, equalized odds, disparate impact) and legal basis for processing special category data per GDPR Article 9",
+      "check_method": "Analyze fairness metrics across protected demographics, verify legal basis for special category data processing, review consent documentation",
+      "pass_criteria": "Demographic parity within ±5%, disparate impact 0.8-1.25 range, equalized odds differences <10%, legal basis documented for special category data processing",
+      
+      "evidence_required": {
+        "evidence_id_prefix": "F2.1-E",
+        "evidence_types": ["fairness_metrics_report", "statistical_analysis", "legal_basis_documentation", "consent_records"],
+        "required_fields": {
+          "fairness_metrics": {
+            "demographic_parity": ["group_A_approval_rate", "group_B_approval_rate", "parity_difference", "statistical_significance"],
+            "disparate_impact": ["group_A_selection_rate", "group_B_selection_rate", "disparate_impact_ratio"],
+            "equalized_odds": ["TPR_group_A", "TPR_group_B", "FPR_group_A", "FPR_group_B", "TPR_difference", "FPR_difference"],
+            "statistical_parity": ["expected_distribution", "actual_distribution", "chi_square_test", "p_value"]
+          },
+          "protected_attributes": ["gender", "race", "ethnicity", "age", "disability_status"],
+          "sample_size": "minimum 1000 transactions per protected group for statistical significance",
+          "confidence_interval": "95% CI required for all metrics",
+          "special_category_data_gdpr": {
+            "legal_basis": ["explicit_consent", "employment_law", "vital_interests", "legitimate_activities", "public_interest", "legal_claims"],
+            "consent_documentation": ["consent_form", "opt_in_mechanism", "withdrawal_procedure", "consent_log"],
+            "applicability": "Required if processing race, ethnic origin, health data, political opinions, etc."
+          }
+        },
+        "file_formats": ["Excel", "CSV", "PDF", "statistical_software_output"],
+        "approval_requirements": "Statistical analysis reviewed by qualified statistician or data scientist, legal basis approved by DPO/legal counsel"
+      },
+      
+      "scoring": {
+        "method": "weighted_factors",
+        "factors": {
+          "demographic_parity": {
+            "weight": 0.25,
+            "thresholds": {
+              "1.0": "Parity difference ≤3%, statistically significant at p<0.05",
+              "0.75": "Parity difference 3-5%, statistically significant",
+              "0.5": "Parity difference 5-7%",
+              "0.0": "Parity difference >7% or not statistically tested"
+            }
+          },
+          "disparate_impact": {
+            "weight": 0.25,
+            "thresholds": {
+              "1.0": "Disparate impact ratio 0.90-1.10 (ideal range)",
+              "0.75": "Disparate impact ratio 0.80-0.89 or 1.11-1.25 (acceptable range)",
+              "0.5": "Disparate impact ratio 0.70-0.79 or 1.26-1.40",
+              "0.0": "Disparate impact ratio <0.70 or >1.40 (four-fifths rule violation)"
+            }
+          },
+          "equalized_odds": {
+            "weight": 0.25,
+            "thresholds": {
+              "1.0": "TPR and FPR differences both <5%",
+              "0.75": "TPR and FPR differences both 5-10%",
+              "0.5": "TPR or FPR difference 10-15%",
+              "0.0": "TPR or FPR difference >15%"
+            }
+          },
+          "special_category_data_legal_basis": {
+            "weight": 0.25,
+            "thresholds": {
+              "1.0": "Legal basis clearly documented for all special category data processing, explicit consent obtained where required, DPO/legal approval documented",
+              "0.75": "Legal basis documented, minor gaps in consent documentation",
+              "0.5": "Legal basis partially documented or consent procedures incomplete",
+              "0.0": "No legal basis documented for special category data processing (GDPR violation if applicable)"
+            },
+            "applicability": "Scored N/A if no special category data processed; full weight if processing race, ethnicity, health, etc."
+          }
+        },
+        "geographic_exemption": {
+          "description": "Special category data requirements apply if processing EU resident data",
+          "exemption_documentation": "Legal opinion confirming no special category data or geographic scope"
+        }
+      },
+      
+      "severity_mapping": {
+        "score_0.0_to_0.6": "Material Weakness",
+        "score_0.61_to_0.8": "Significant Deficiency",
+        "score_0.81_to_1.0": "Pass"
+      }
+    },
+    
+    {
+      "criterion_id": "F2.2",
+      "criterion_name": "Bias Monitoring System",
+      "iqbal_reference": "Fairness Audit - Question 2",
+      "description": "Assesses ongoing bias monitoring system including frequency, alerting mechanisms, response procedures, and monitoring effectiveness",
+      "check_method": "Review bias monitoring logs, alert configurations, response time metrics, remediation tracking",
+      "pass_criteria": "Monthly minimum monitoring frequency, automated alerts configured, alert response time <72 hours, remediation tracked for all bias incidents",
+      
+      "evidence_required": {
+        "evidence_id_prefix": "F2.2-E",
+        "evidence_types": ["monitoring_logs", "alert_configuration", "incident_response_log", "remediation_tracker"],
+        "required_fields": {
+          "monitoring_frequency": ["monitoring_schedule", "actual_monitoring_dates", "missed_monitoring_instances"],
+          "alert_configuration": ["alert_thresholds", "notification_recipients", "escalation_procedures"],
+          "response_metrics": ["alert_date", "response_date", "response_time_hours", "investigation_outcome", "remediation_action"],
+          "monitoring_scope": "All production AI systems in financial processes"
+        },
+        "file_formats": ["Excel", "CSV", "monitoring_system_screenshots"],
+        "approval_requirements": "Monitoring procedures approved by AI Governance Lead, alert thresholds reviewed quarterly"
+      },
+      
+      "scoring": {
+        "method": "weighted_factors",
+        "factors": {
+          "monitoring_frequency": {
+            "weight": 0.25,
+            "thresholds": {
+              "1.0": "Weekly or more frequent monitoring",
+              "0.75": "Monthly monitoring, no missed instances",
+              "0.5": "Monthly monitoring with occasional gaps (1-2 missed months)",
+              "0.0": "Less than monthly or frequent gaps"
+            }
+          },
+          "automated_alerting": {
+            "weight": 0.25,
+            "thresholds": {
+              "1.0": "Automated alerts configured for all fairness metrics, tested within 6 months",
+              "0.75": "Automated alerts configured, not recently tested",
+              "0.5": "Partial automation, some manual monitoring",
+              "0.0": "No automated alerting"
+            }
+          },
+          "response_time": {
+            "weight": 0.25,
+            "thresholds": {
+              "1.0": "Average response time <48 hours, 100% of alerts responded to within 72 hours",
+              "0.75": "Average response time <72 hours, >90% within 72 hours",
+              "0.5": "Average response time <1 week",
+              "0.0": "Response time >1 week or alerts not tracked"
+            }
+          },
+          "remediation_tracking": {
+            "weight": 0.25,
+            "thresholds": {
+              "1.0": "All bias incidents tracked, remediation plans documented, implementation verified",
+              "0.75": "Most incidents tracked, remediation documented",
+              "0.5": "Tracking inconsistent",
+              "0.0": "No remediation tracking"
+            }
+          }
+        }
+      },
+      
+      "severity_mapping": {
+        "score_0.0_to_0.6": "Significant Deficiency",
+        "score_0.61_to_0.8": "Control Deficiency",
+        "score_0.81_to_1.0": "Pass"
+      }
+    },
+    
+    {
+      "criterion_id": "F2.3",
+      "criterion_name": "Bias Mitigation Procedures",
+      "iqbal_reference": "Fairness Audit - Question 3",
+      "description": "Evaluates documented bias mitigation procedures and their implementation including rebalancing, constraints, adversarial debiasing",
+      "check_method": "Review bias mitigation documentation, implementation evidence, effectiveness testing results",
+      "pass_criteria": "Documented mitigation procedures exist, at least 2 mitigation techniques implemented, effectiveness validated through testing, training data representativeness within ±10% of population distribution",
+      
+      "evidence_required": {
+        "evidence_id_prefix": "F2.3-E",
+        "evidence_types": ["mitigation_procedures", "implementation_documentation", "effectiveness_testing"],
+        "required_fields": {
+          "mitigation_techniques": ["technique_name", "implementation_date", "target_bias", "expected_impact"],
+          "available_techniques": ["data_rebalancing", "fairness_constraints", "adversarial_debiasing", "preprocessing", "inprocessing", "postprocessing"],
+          "training_data_representativeness": ["protected_group", "population_percentage", "training_data_percentage", "difference"],
+          "effectiveness_metrics": ["before_mitigation_bias", "after_mitigation_bias", "bias_reduction_percentage"]
+        },
+        "file_formats": ["PDF", "DOCX", "Excel"],
+        "approval_requirements": "Mitigation procedures approved by AI Ethics Committee or equivalent, effectiveness testing reviewed by data science lead"
+      },
+      
+      "scoring": {
+        "method": "weighted_factors",
+        "factors": {
+          "procedure_documentation": {
+            "weight": 0.25,
+            "thresholds": {
+              "1.0": "Comprehensive procedures covering multiple mitigation techniques, approved within 12 months",
+              "0.75": "Procedures documented and approved, covering 2+ techniques",
+              "0.5": "Basic procedures, limited techniques",
+              "0.0": "No documented procedures"
+            }
+          },
+          "implementation": {
+            "weight": 0.30,
+            "thresholds": {
+              "1.0": "≥3 mitigation techniques implemented and operational",
+              "0.75": "2 mitigation techniques implemented",
+              "0.5": "1 mitigation technique implemented",
+              "0.0": "No mitigation techniques implemented"
+            }
+          },
+          "training_data_representativeness": {
+            "weight": 0.25,
+            "thresholds": {
+              "1.0": "All protected groups within ±5% of population distribution",
+              "0.75": "All protected groups within ±10% of population distribution",
+              "0.5": "Most groups within ±15%, some gaps",
+              "0.0": "Significant representativeness gaps (>15%) or not measured"
+            }
+          },
+          "effectiveness_validation": {
+            "weight": 0.20,
+            "thresholds": {
+              "1.0": "Effectiveness validated through A/B testing, ≥50% bias reduction demonstrated",
+              "0.75": "Effectiveness tested, ≥30% bias reduction",
+              "0.5": "Basic testing, some improvement",
+              "0.0": "No effectiveness validation"
+            }
+          }
+        }
+      },
+      
+      "severity_mapping": {
+        "score_0.0_to_0.6": "Significant Deficiency",
+        "score_0.61_to_0.8": "Control Deficiency",
+        "score_0.81_to_1.0": "Pass"
+      }
+    },
+    
+    {
+      "criterion_id": "F2.4",
+      "criterion_name": "Automated Decision-Making Opt-Out (GDPR Article 22, CCPA §1798.185)",
+      "iqbal_reference": "Privacy Audit - Question 4",
+      "description": "Validates opt-out mechanisms and human review availability for AI-driven automated decisions with legal or similarly significant effects on individuals",
+      "check_method": "Review opt-out procedures, human review request logs, alternative decision-making processes, consumer notification of automated decision use",
+      "pass_criteria": "Opt-out mechanism documented and operational, human review available within 5 business days, alternative non-AI decision path exists, consumers notified of automated decision-making use in privacy policy",
+      
+      "evidence_required": {
+        "evidence_id_prefix": "F2.4-E",
+        "evidence_types": ["opt_out_procedure", "human_review_log", "privacy_policy_excerpt", "alternative_process_documentation"],
+        "required_fields": {
+          "opt_out_mechanism": {
+            "gdpr_article_22": ["opt_out_request_process", "human_intervention_availability", "express_point_of_view_mechanism", "contest_decision_procedure"],
+            "ccpa_1798_185": ["opt_out_link_in_privacy_policy", "consumer_request_process", "business_day_response_timeline", "non_discriminatory_treatment"]
+          },
+          "human_review_log": ["request_date", "ai_decision_reviewed", "human_reviewer", "review_date", "outcome", "turnaround_time"],
+          "privacy_policy_disclosure": ["automated_decision_disclosure", "logic_disclosure", "significance_disclosure", "opt_out_instructions"],
+          "alternative_process": ["non_ai_decision_path_documented", "availability_to_consumers", "process_equivalency"]
+        },
+        "file_formats": ["PDF", "DOCX", "Excel for logs"],
+        "approval_requirements": "Opt-out procedure approved by DPO/legal counsel, human review process tested within 12 months",
+        "gdpr_articles": ["Article 22 (Automated decision-making, including profiling)", "Articles 13-14 (Right to information)"],
+        "ccpa_sections": ["§1798.125 (Non-discrimination)", "§1798.185 (Automated decision-making regulations)"],
+        "applicability": "Required if AI makes decisions with legal or similarly significant effects on EU residents or California residents"
+      },
+      
+      "scoring": {
+        "method": "weighted_factors",
+        "factors": {
+          "opt_out_mechanism_existence": {
+            "weight": 0.30,
+            "thresholds": {
+              "1.0": "Opt-out mechanism clearly documented, operational, tested within 12 months, accessible to consumers",
+              "0.75": "Mechanism documented and operational, not recently tested",
+              "0.5": "Mechanism exists but accessibility or documentation gaps",
+              "0.0": "No opt-out mechanism (when required)"
+            }
+          },
+          "human_review_availability": {
+            "weight": 0.30,
+            "thresholds": {
+              "1.0": "Human review available within 48 hours, reviewers trained, review quality verified",
+              "0.75": "Human review available within 5 business days, basic training",
+              "0.5": "Human review available but delays common (>5 days)",
+              "0.0": "No human review available or excessive delays (>10 days)"
+            }
+          },
+          "privacy_policy_disclosure": {
+            "weight": 0.20,
+            "thresholds": {
+              "1.0": "Privacy policy clearly discloses automated decision-making, logic/significance explained in plain language, opt-out instructions prominent",
+              "0.75": "Disclosure exists, some clarity gaps",
+              "0.5": "Minimal disclosure, difficult to find",
+              "0.0": "No disclosure of automated decision-making"
+            }
+          },
+          "alternative_process": {
+            "weight": 0.20,
+            "thresholds": {
+              "1.0": "Alternative non-AI decision process documented, available, equivalent outcomes possible",
+              "0.75": "Alternative process exists, some limitations",
+              "0.5": "Limited alternative process",
+              "0.0": "No alternative to automated decision-making"
+            }
+          }
+        },
+        "geographic_exemption": {
+          "description": "Criterion scored N/A if AI does not make decisions with legal/significant effects OR not processing EU/California resident data",
+          "exemption_documentation": "Legal assessment of decision significance + geographic scope documentation"
+        }
+      },
+      
+      "severity_mapping": {
+        "score_0.0_to_0.5": "Material Weakness (if applicable to EU/California residents)",
+        "score_0.51_to_0.75": "Significant Deficiency",
+        "score_0.76_to_1.0": "Pass",
+        "score_NA": "Not Applicable (no legally significant automated decisions or geographic exemption documented)"
+      }
+    }
+  ],
+  
+  "aggregate_scoring": {
+    "method": "weighted_average",
+    "criteria_weights": {
+      "F2.1": 0.35,
+      "F2.2": 0.25,
+      "F2.3": 0.25,
+      "F2.4": 0.15
+    },
+    "calculation": "sum(criterion_score × weight), excluding N/A criteria and renormalizing weights",
+    "overall_pass_threshold": 0.75,
+    "note": "F2.4 scored N/A if not applicable; weights renormalized. F2.1 special category data component scored N/A if no special category data processed."
+  },
+  
+  "regulatory_alignment": {
+    "nist_ai_rmf": {
+      "fairness_characteristic": "All criteria align with Fairness characteristic",
+      "measure_2_1": "F2.1 - Bias and discrimination assessment",
+      "measure_2_2": "F2.2 - Monitoring for bias",
+      "measure_2_3": "F2.1 - Demographic data analysis"
+    },
+    "nist_sp_1270": {
+      "demographic_parity": "F2.1",
+      "equalized_odds": "F2.1",
+      "disparate_impact": "F2.1"
+    },
+    "eu_ai_act": {
+      "article_10": "F2.1, F2.3 - Data governance for training datasets",
+      "article_9": "F2.2 - Risk management system for bias"
+    },
+    "gdpr": {
+      "article_9": "F2.1 - Processing of special category data (race, ethnicity, health, etc.)",
+      "recital_71": "F2.1, F2.3 - Prohibition of discriminatory effects",
+      "article_22": "F2.4 - Right not to be subject to solely automated decision-making",
+      "articles_13_14": "F2.4 - Right to information about automated decision-making logic"
+    },
+    "ccpa": {
+      "section_1798_125": "F2.4 - Non-discrimination (cannot deny services for exercising CCPA rights)",
+      "section_1798_185": "F2.4 - Automated decision-making regulations, opt-out rights"
+    },
+    "fair_lending_laws": {
+      "ecoa": "F2.1 - Equal Credit Opportunity Act compliance",
+      "fcra": "F2.1 - Fair Credit Reporting Act adverse action requirements"
+    }
+  },
+  
+  "interdependency_triggers": [
+    {
+      "trigger_id": "T2.1",
+      "trigger_condition": "F2.1 < 0.6 (systematic bias detected)",
+      "triggered_module": "M5_ACCURACY",
+      "action": "Analyze whether accuracy varies across demographic groups to distinguish 'fair but uniformly inaccurate' from 'accurate but biased'",
+      "rationale": "Distinguishes root cause: bias mitigation needed vs. model retraining needed. Determines appropriate remediation approach."
+    },
+    {
+      "trigger_id": "T2.2",
+      "trigger_condition": "F2.4 < 0.6 (opt-out mechanism inadequate)",
+      "triggered_module": "M1_GOVERNANCE",
+      "action": "Investigate governance root cause: Does privacy policy require opt-out mechanisms? Is there governance oversight of automated decision-making?",
+      "rationale": "Opt-out failures often indicate governance gap in privacy compliance framework"
+    }
+  ],
+  
+  "council_of_experts_integration": {
+    "stage_1_domain_score": "Aggregate score from F2.1-F2.4 using weighted average",
+    "stage_2_peer_review_lens": {
+      "review_by_m1_governance": "Does governance framework mandate bias detection and fairness policies? Are accountability owners assigned?",
+      "review_by_m3_security": "Do access controls suggest differential data access across demographics (proxy for bias risk)?",
+      "review_by_m4_explainability": "Are explanations produced equally across demographic groups? Can disadvantaged groups obtain adequate explanation?",
+      "review_by_m5_accuracy": "Does accuracy vary systematically across demographic groups? Is model more error-prone for protected classes?"
+    },
+    "stage_3_arbitrator_inputs": "M2 domain score + 4 peer review cards + fairness trigger log"
+  }
+}

@@ -1,0 +1,553 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Module 5: Accuracy & Performance Evaluation Schema",
+  "description": "Evaluates AI model accuracy, drift monitoring, materiality impact, and data accuracy compliance for AI-based Accounting Information Systems",
+  "version": "3.1",
+  "last_updated": "2026-03-07",
+  "module_id": "M5_ACCURACY",
+  "module_name": "Accuracy & Performance",
+  
+  "evaluation_criteria": [
+    {
+      "criterion_id": "A5.1",
+      "criterion_name": "Model Validation Documentation & Data Accuracy",
+      "iqbal_reference": "Accuracy Audit - Question 1",
+      "description": "Validates comprehensive model validation documentation including confusion matrix, ROC curves, holdout testing, and GDPR Article 5(1)(d) data accuracy principle compliance",
+      "check_method": "Review validation reports for statistical rigor, holdout dataset representativeness, performance metrics, and personal data accuracy assessment",
+      "pass_criteria": "Validation report includes confusion matrix, ROC/PR curves, feature importance, out-of-sample testing with ≥20% holdout, performance meets materiality thresholds, personal data accuracy validated",
+      
+      "evidence_required": {
+        "evidence_id_prefix": "A5.1-E",
+        "evidence_types": ["validation_report", "confusion_matrix", "roc_pr_curves", "holdout_test_results", "personal_data_accuracy_assessment"],
+        "required_fields": {
+          "performance_metrics": {
+            "classification_metrics": ["accuracy", "precision", "recall", "f1_score", "auc_roc", "auc_pr"],
+            "regression_metrics": ["rmse", "mae", "r_squared", "mape"],
+            "confusion_matrix": ["true_positives", "false_positives", "true_negatives", "false_negatives"]
+          },
+          "validation_methodology": {
+            "train_test_split": "Percentage split (minimum 20% holdout required)",
+            "cross_validation": "k-fold cross-validation results if applicable",
+            "temporal_validation": "For time-series: walk-forward validation results"
+          },
+          "statistical_tests": {
+            "confidence_intervals": "95% CI for all key metrics",
+            "significance_testing": "Statistical significance of model performance vs. baseline"
+          },
+          "gdpr_data_accuracy": {
+            "personal_data_validation": "Validation specifically assessing accuracy of AI inferences about individuals",
+            "accuracy_principle_compliance": "Assessment per GDPR Article 5(1)(d): Are personal data inferences accurate and kept up to date?",
+            "correction_impact": "Analysis of data subject correction requests revealing systematic accuracy issues"
+          }
+        },
+        "file_formats": ["PDF report", "Jupyter notebooks", "R Markdown", "Excel with charts"],
+        "approval_requirements": "Validation performed by independent validator (not model developer), approved by Model Risk Management or equivalent within 12 months",
+        "gdpr_articles": ["Article 5(1)(d) - Accuracy principle: personal data must be accurate and kept up to date"]
+      },
+      
+      "scoring": {
+        "method": "weighted_factors",
+        "factors": {
+          "validation_completeness": {
+            "weight": 0.30,
+            "thresholds": {
+              "1.0": "All required components present (confusion matrix, ROC, PR, feature importance, holdout ≥20%, cross-validation)",
+              "0.75": "Most components present, minor gaps (e.g., no PR curve or limited cross-validation)",
+              "0.5": "Basic validation only (confusion matrix and one metric)",
+              "0.0": "Incomplete validation or missing critical components"
+            }
+          },
+          "performance_vs_materiality": {
+            "weight": 0.35,
+            "thresholds": {
+              "1.0": "Model performance well within materiality thresholds, error rate would not create material misstatement",
+              "0.75": "Performance within materiality but close to threshold",
+              "0.5": "Performance borderline material, requires monitoring",
+              "0.0": "Performance creates material misstatement risk (see materiality calculation)"
+            },
+            "materiality_calculation": "Potential_Misstatement = Error_Rate × Transaction_Value × Bias_Factor"
+          },
+          "statistical_rigor": {
+            "weight": 0.20,
+            "thresholds": {
+              "1.0": "95% confidence intervals for all metrics, statistical significance tested, independent validation",
+              "0.75": "Confidence intervals present, independent validation",
+              "0.5": "Basic statistical testing, validation not fully independent",
+              "0.0": "No statistical rigor or self-validation only"
+            }
+          },
+          "personal_data_accuracy_gdpr": {
+            "weight": 0.15,
+            "thresholds": {
+              "1.0": "Personal data inference accuracy specifically validated, correction request analysis performed, systematic accuracy issues addressed",
+              "0.75": "Personal data accuracy assessed, minor gaps in correction analysis",
+              "0.5": "Limited personal data accuracy validation",
+              "0.0": "No assessment of personal data inference accuracy (GDPR Article 5(1)(d) compliance gap)"
+            },
+            "applicability": "Full weight if AI makes inferences about EU residents; scored N/A if not applicable"
+          }
+        },
+        "geographic_exemption": {
+          "description": "Personal data accuracy component scored N/A if not processing EU resident data",
+          "exemption_documentation": "Geographic scope documentation"
+        }
+      },
+      
+      "severity_mapping": {
+        "score_0.0_to_0.6": "Material Weakness",
+        "score_0.61_to_0.8": "Significant Deficiency",
+        "score_0.81_to_1.0": "Pass"
+      }
+    },
+    
+    {
+      "criterion_id": "A5.2",
+      "criterion_name": "Drift Detection & Monitoring with GDPR Compliance",
+      "iqbal_reference": "Accuracy Audit - Question 2",
+      "description": "Assesses model drift detection system including monitoring frequency, alert thresholds, retraining procedures, and GDPR Article 5(1)(d) accuracy maintenance",
+      "check_method": "Review drift monitoring logs, alert configurations, retraining procedures, GDPR accuracy degradation assessment",
+      "pass_criteria": "Daily drift monitoring operational, alert thresholds set (>5% investigate, >10% retrain, >15% immediate review), retraining procedures documented and tested, GDPR accuracy degradation triggers documented",
+      
+      "evidence_required": {
+        "evidence_id_prefix": "A5.2-E",
+        "evidence_types": ["drift_monitoring_logs", "alert_configuration", "retraining_procedures", "retraining_log", "gdpr_accuracy_assessment"],
+        "required_fields": {
+          "monitoring_configuration": {
+            "monitoring_frequency": "Daily, weekly, or monthly (daily recommended for high-risk AI)",
+            "drift_metrics": ["accuracy_drift", "precision_drift", "recall_drift", "data_distribution_drift", "concept_drift"],
+            "alert_thresholds": {
+              "investigate_threshold": "5% performance degradation",
+              "retrain_threshold": "10% performance degradation",
+              "immediate_review_threshold": "15% performance degradation"
+            }
+          },
+          "monitoring_logs": ["date", "drift_metric", "drift_percentage", "baseline_value", "current_value", "alert_triggered", "action_taken"],
+          "retraining_procedures": {
+            "trigger_conditions": "Conditions that mandate retraining",
+            "retraining_process": "Steps for model retraining",
+            "validation_requirements": "New model validation before deployment",
+            "approval_authority": "Who approves retraining and deployment"
+          },
+          "gdpr_accuracy_maintenance": {
+            "drift_impact_on_personal_data": "Assessment of whether drift causes personal data inferences to become inaccurate",
+            "correction_obligation": "Trigger for GDPR Article 16 (right to rectification) when drift identified",
+            "automated_correction": "Procedures for correcting inaccurate personal data inferences when drift detected"
+          }
+        },
+        "file_formats": ["Excel logs", "PDF procedures", "monitoring dashboard screenshots"],
+        "approval_requirements": "Drift monitoring procedures approved by Model Risk Management, alert thresholds reviewed quarterly",
+        "gdpr_articles": ["Article 5(1)(d) - Accuracy principle: data must be accurate and kept up to date", "Article 16 - Right to rectification"]
+      },
+      
+      "scoring": {
+        "method": "weighted_factors",
+        "factors": {
+          "monitoring_operational": {
+            "weight": 0.30,
+            "thresholds": {
+              "1.0": "Daily automated monitoring operational, no missed monitoring periods in last 6 months",
+              "0.75": "Weekly monitoring operational, minimal gaps",
+              "0.5": "Monthly monitoring or occasional gaps",
+              "0.0": "No systematic monitoring or frequent gaps"
+            }
+          },
+          "alert_configuration": {
+            "weight": 0.25,
+            "thresholds": {
+              "1.0": "Alerts configured at 5%, 10%, 15% thresholds, tested within 6 months, notification working",
+              "0.75": "Alerts configured, not recently tested or missing one threshold level",
+              "0.5": "Basic alerting, significant gaps in thresholds or testing",
+              "0.0": "No automated alerts or alerts not functioning"
+            }
+          },
+          "retraining_procedures": {
+            "weight": 0.25,
+            "thresholds": {
+              "1.0": "Comprehensive retraining procedures documented, tested through actual retraining within 12 months, validation requirements clear",
+              "0.75": "Procedures documented, not recently tested or minor gaps",
+              "0.5": "Basic procedures, significant gaps",
+              "0.0": "No retraining procedures or ad-hoc only"
+            }
+          },
+          "gdpr_accuracy_triggers": {
+            "weight": 0.20,
+            "thresholds": {
+              "1.0": "Drift monitoring includes GDPR accuracy assessment, >10% drift triggers personal data accuracy review and correction procedures, automated where possible",
+              "0.75": "GDPR accuracy assessment documented, manual correction procedures",
+              "0.5": "Limited GDPR accuracy consideration in drift monitoring",
+              "0.0": "No GDPR accuracy maintenance procedures when drift detected"
+            },
+            "applicability": "Full weight if processing EU resident data; scored N/A if not applicable"
+          }
+        },
+        "geographic_exemption": {
+          "description": "GDPR accuracy component scored N/A if not processing EU resident data",
+          "exemption_documentation": "Geographic scope documentation"
+        }
+      },
+      
+      "severity_mapping": {
+        "score_0.0_to_0.6": "Material Weakness",
+        "score_0.61_to_0.8": "Significant Deficiency",
+        "score_0.81_to_1.0": "Pass"
+      }
+    },
+    
+    {
+      "criterion_id": "A5.3",
+      "criterion_name": "Performance Metrics Dashboard & Materiality Alignment",
+      "iqbal_reference": "Accuracy Audit - Question 3",
+      "description": "Evaluates performance dashboard availability, update frequency, stakeholder access, and materiality calculation integration",
+      "check_method": "Review dashboard functionality, refresh frequency, access controls, materiality calculations",
+      "pass_criteria": "Dashboard operational with daily refresh, accessible to AI system owners and auditors, displays key metrics (accuracy, precision, recall, AUC), materiality impact calculated and displayed",
+      
+      "evidence_required": {
+        "evidence_id_prefix": "A5.3-E",
+        "evidence_types": ["dashboard_screenshots", "access_log", "materiality_calculations", "dashboard_documentation"],
+        "required_fields": {
+          "dashboard_content": {
+            "key_metrics_displayed": ["accuracy", "precision", "recall", "f1_score", "auc_roc", "drift_percentage"],
+            "trend_analysis": "Historical performance trends over time",
+            "alert_status": "Current alert status and recent alerts",
+            "materiality_indicator": "Materiality impact calculation and color-coding"
+          },
+          "refresh_frequency": "Daily, weekly, or real-time",
+          "access_control": {
+            "authorized_users": ["ai_system_owners", "model_risk_management", "internal_audit", "external_audit"],
+            "access_log": ["user_id", "access_date", "dashboard_viewed"]
+          },
+          "materiality_calculation": {
+            "formula": "Potential_Misstatement = Error_Rate × Transaction_Value × Bias_Factor",
+            "materiality_threshold": "Overall materiality benchmark (e.g., $5M)",
+            "materiality_multiple": "Potential_Misstatement ÷ Materiality_Threshold",
+            "sox_classification": "Material Weakness, Significant Deficiency, or Pass based on materiality multiple"
+          }
+        },
+        "file_formats": ["Dashboard URL", "Screenshots", "Excel calculations"],
+        "approval_requirements": "Dashboard design approved by Model Risk Management and Internal Audit"
+      },
+      
+      "scoring": {
+        "method": "weighted_factors",
+        "factors": {
+          "dashboard_functionality": {
+            "weight": 0.30,
+            "thresholds": {
+              "1.0": "Dashboard operational, displays all key metrics, user-friendly interface, mobile-accessible",
+              "0.75": "Dashboard operational, displays most metrics, minor usability gaps",
+              "0.5": "Basic dashboard, limited metrics or usability issues",
+              "0.0": "No dashboard or non-functional"
+            }
+          },
+          "refresh_frequency": {
+            "weight": 0.25,
+            "thresholds": {
+              "1.0": "Real-time or daily refresh, automated",
+              "0.75": "Daily refresh, manual trigger acceptable",
+              "0.5": "Weekly refresh",
+              "0.0": "Less than weekly or manual refresh with frequent delays"
+            }
+          },
+          "stakeholder_access": {
+            "weight": 0.20,
+            "thresholds": {
+              "1.0": "All required stakeholders have access, access controls appropriate, access audited",
+              "0.75": "Most stakeholders have access, minor gaps",
+              "0.5": "Limited stakeholder access",
+              "0.0": "Dashboard not accessible to key stakeholders (e.g., auditors)"
+            }
+          },
+          "materiality_integration": {
+            "weight": 0.25,
+            "thresholds": {
+              "1.0": "Materiality calculation integrated, formula transparent, color-coded by severity, SOX classification automated",
+              "0.75": "Materiality displayed, calculation manual or not fully transparent",
+              "0.5": "Basic materiality indication without detailed calculation",
+              "0.0": "No materiality calculation or display"
+            }
+          }
+        }
+      },
+      
+      "severity_mapping": {
+        "score_0.0_to_0.6": "Significant Deficiency",
+        "score_0.61_to_0.8": "Control Deficiency",
+        "score_0.81_to_1.0": "Pass"
+      }
+    },
+    
+    {
+      "criterion_id": "A5.4",
+      "criterion_name": "Personal Data Inference Accuracy (GDPR Article 5(1)(d))",
+      "iqbal_reference": "Privacy Audit - Question 7",
+      "description": "Validates AI model accuracy specifically for inferences about individuals, ensuring personal data generated by AI is accurate per GDPR Article 5(1)(d)",
+      "check_method": "Review validation of AI-generated personal data accuracy, testing for inference quality, analysis of correction requests revealing systematic errors",
+      "pass_criteria": "AI inferences about individuals validated for accuracy, inference quality testing performed, correction request analysis reveals no systematic accuracy issues, procedures exist for correcting inaccurate inferences",
+      
+      "evidence_required": {
+        "evidence_id_prefix": "A5.4-E",
+        "evidence_types": ["inference_accuracy_validation", "correction_request_analysis", "systematic_error_assessment"],
+        "required_fields": {
+          "inference_types": ["credit_scores", "risk_ratings", "approval_probabilities", "customer_classifications", "fraud_scores"],
+          "accuracy_validation": {
+            "validation_methodology": "How AI-generated inferences are validated for accuracy",
+            "sample_size": "Representative sample of inferences tested",
+            "accuracy_metrics": "Precision, recall, false positive rate for inferences about individuals",
+            "ground_truth_comparison": "Comparison against verified ground truth data"
+          },
+          "correction_request_analysis": {
+            "correction_requests_received": "Number and types of GDPR Article 16 / CCPA §1798.106 correction requests",
+            "systematic_error_detection": "Analysis to identify patterns suggesting systematic AI accuracy issues",
+            "correction_impact_on_model": "Whether corrections trigger model review or retraining"
+          },
+          "rectification_procedures": "Procedures for correcting inaccurate AI-generated personal data"
+        },
+        "file_formats": ["PDF validation reports", "Excel analysis"],
+        "approval_requirements": "Inference accuracy validation approved by DPO and Model Risk Management",
+        "gdpr_articles": ["Article 5(1)(d) - Accuracy principle for personal data", "Article 16 - Right to rectification"],
+        "ccpa_sections": ["§1798.106 - Right to correct inaccurate personal information"],
+        "applicability": "Required if AI generates inferences about EU residents or California residents"
+      },
+      
+      "scoring": {
+        "method": "weighted_factors",
+        "factors": {
+          "inference_validation": {
+            "weight": 0.40,
+            "thresholds": {
+              "1.0": "Comprehensive validation of AI inferences, statistically significant sample, ground truth comparison, high accuracy (>95%)",
+              "0.75": "Validation performed, adequate sample, accuracy >90%",
+              "0.5": "Basic validation, small sample or accuracy 85-90%",
+              "0.0": "No validation or accuracy <85%"
+            }
+          },
+          "correction_analysis": {
+            "weight": 0.30,
+            "thresholds": {
+              "1.0": "Correction requests systematically analyzed, no systematic errors detected, analysis triggers model review when patterns identified",
+              "0.75": "Analysis performed, minor systematic issues identified and addressed",
+              "0.5": "Limited analysis or systematic issues not fully addressed",
+              "0.0": "No correction request analysis or systematic errors unaddressed"
+            }
+          },
+          "rectification_procedures": {
+            "weight": 0.20,
+            "thresholds": {
+              "1.0": "Comprehensive procedures for correcting inaccurate inferences, automated where possible, tested within 12 months",
+              "0.75": "Procedures documented, mostly manual, tested",
+              "0.5": "Basic procedures, gaps in documentation or testing",
+              "0.0": "No rectification procedures"
+            }
+          },
+          "proactive_accuracy_monitoring": {
+            "weight": 0.10,
+            "thresholds": {
+              "1.0": "Proactive monitoring for inference accuracy degradation, not just reactive to correction requests",
+              "0.75": "Some proactive monitoring",
+              "0.5": "Primarily reactive",
+              "0.0": "Purely reactive to correction requests"
+            }
+          }
+        },
+        "geographic_exemption": {
+          "description": "Criterion scored N/A if AI does not generate inferences about EU/California residents",
+          "exemption_documentation": "Legal assessment and geographic scope documentation"
+        }
+      },
+      
+      "severity_mapping": {
+        "score_0.0_to_0.5": "Material Weakness (if applicable)",
+        "score_0.51_to_0.75": "Significant Deficiency",
+        "score_0.76_to_1.0": "Pass",
+        "score_NA": "Not Applicable (documented exemption)"
+      }
+    },
+    
+    {
+      "criterion_id": "A5.5",
+      "criterion_name": "Data Subject Correction Rights (GDPR Article 16, CCPA §1798.106)",
+      "iqbal_reference": "Privacy Audit - Question 8",
+      "description": "Validates procedures for handling data subject requests to correct inaccurate AI-generated personal data inferences",
+      "check_method": "Review correction request procedures, request handling logs, response timelines, model impact assessment process",
+      "pass_criteria": "Correction request procedure documented, requests handled within statutory timelines (GDPR 30 days, CCPA 45 days), systematic errors trigger model review, correction confirmation sent to data subjects",
+      
+      "evidence_required": {
+        "evidence_id_prefix": "A5.5-E",
+        "evidence_types": ["correction_request_procedure", "request_handling_log", "model_impact_assessment"],
+        "required_fields": {
+          "request_procedure": {
+            "request_submission_mechanism": "How data subjects submit correction requests",
+            "verification_process": "How requests are verified as legitimate",
+            "assessment_process": "How organization assesses whether AI inference is indeed inaccurate",
+            "correction_process": "Steps for correcting inaccurate data",
+            "response_timeline": "Target response time (GDPR: 30 days, CCPA: 45 days)"
+          },
+          "request_log": {
+            "fields": ["request_date", "data_subject_id", "inference_type", "claimed_inaccuracy", "assessment_outcome", "correction_made", "response_date", "days_to_respond"],
+            "tracking": "All requests tracked from receipt to resolution"
+          },
+          "model_impact_assessment": {
+            "systematic_error_detection": "Process for identifying if correction requests reveal systematic model errors",
+            "retraining_trigger": "Threshold of similar corrections that triggers model retraining (e.g., 10+ similar corrections in a month)",
+            "retraining_log": "Log of model retraining triggered by correction patterns"
+          }
+        },
+        "file_formats": ["PDF procedures", "Excel logs"],
+        "approval_requirements": "Correction procedure approved by DPO/legal counsel, tested within 12 months",
+        "gdpr_articles": ["Article 16 - Right to rectification", "Article 19 - Notification of rectification"],
+        "ccpa_sections": ["§1798.106 - Right to correct inaccurate personal information"],
+        "applicability": "Required if AI generates inferences about EU/California residents"
+      },
+      
+      "scoring": {
+        "method": "weighted_factors",
+        "factors": {
+          "procedure_quality": {
+            "weight": 0.30,
+            "thresholds": {
+              "1.0": "Comprehensive procedure covering all steps, approved and tested within 12 months, clear escalation paths",
+              "0.75": "Procedure documented and approved, minor gaps or not recently tested",
+              "0.5": "Basic procedure, significant gaps",
+              "0.0": "No documented procedure"
+            }
+          },
+          "timeline_compliance": {
+            "weight": 0.35,
+            "thresholds": {
+              "1.0": "≥95% of requests responded to within statutory timeline (GDPR 30 days, CCPA 45 days)",
+              "0.75": "≥90% within statutory timeline",
+              "0.5": "≥75% within statutory timeline or frequent minor delays",
+              "0.0": "Frequent delays beyond statutory timelines"
+            }
+          },
+          "systematic_error_detection": {
+            "weight": 0.25,
+            "thresholds": {
+              "1.0": "Systematic error detection operational, patterns trigger model review, retraining performed when warranted",
+              "0.75": "Detection process exists, retraining sometimes performed",
+              "0.5": "Limited systematic analysis",
+              "0.0": "No process for detecting systematic errors from correction patterns"
+            }
+          },
+          "notification_compliance": {
+            "weight": 0.10,
+            "thresholds": {
+              "1.0": "Data subjects always notified of correction outcome, confirmation sent per GDPR Article 19",
+              "0.75": "Usually notified, occasional gaps",
+              "0.5": "Inconsistent notification",
+              "0.0": "Data subjects not systematically notified of outcomes"
+            }
+          }
+        },
+        "geographic_exemption": {
+          "description": "Criterion scored N/A if not generating inferences about EU/California residents",
+          "exemption_documentation": "Legal assessment and geographic scope"
+        }
+      },
+      
+      "severity_mapping": {
+        "score_0.0_to_0.5": "Material Weakness (if applicable)",
+        "score_0.51_to_0.75": "Significant Deficiency",
+        "score_0.76_to_1.0": "Pass",
+        "score_NA": "Not Applicable (documented exemption)"
+      }
+    }
+  ],
+  
+  "aggregate_scoring": {
+    "method": "weighted_average",
+    "criteria_weights": {
+      "A5.1": 0.30,
+      "A5.2": 0.30,
+      "A5.3": 0.15,
+      "A5.4": 0.15,
+      "A5.5": 0.10
+    },
+    "calculation": "sum(criterion_score × weight), excluding N/A criteria and renormalizing weights",
+    "overall_pass_threshold": 0.75,
+    "note": "Privacy criteria (A5.4, A5.5) scored N/A if not applicable; weights renormalized across applicable criteria"
+  },
+  
+  "materiality_calculation": {
+    "formula": "Potential_Misstatement = Error_Rate × Transaction_Value × Bias_Factor",
+    "components": {
+      "error_rate": "Model error rate from validation (e.g., 2.98%)",
+      "transaction_value": "Annual transaction value processed by AI (e.g., $500M)",
+      "bias_factor": "Multiplier for error concentration (1.0 = uniform, 3.0 = concentrated in high-value transactions)"
+    },
+    "example": {
+      "error_rate": 0.0298,
+      "transaction_value": 500000000,
+      "bias_factor": 3.0,
+      "potential_misstatement": 44700000,
+      "overall_materiality": 5000000,
+      "materiality_multiple": 8.94,
+      "sox_classification": "Material Weakness (exceeds materiality by 8.94×)"
+    },
+    "sox_classification_rules": {
+      "material_weakness": "Materiality_Multiple > 1.0 (potential misstatement exceeds overall materiality)",
+      "significant_deficiency": "0.5 < Materiality_Multiple ≤ 1.0 (50-100% of materiality)",
+      "control_deficiency": "Materiality_Multiple ≤ 0.5 (below 50% of materiality)"
+    }
+  },
+  
+  "regulatory_alignment": {
+    "nist_ai_rmf": {
+      "valid_reliable": "A5.1, A5.2, A5.3 - All criteria align with Valid & Reliable characteristic",
+      "measure_2_7": "A5.2 - AI system monitoring",
+      "measure_2_8": "A5.1 - Risks associated with AI system accuracy"
+    },
+    "coso_framework": {
+      "monitoring_activities": "A5.2, A5.3 - Ongoing monitoring and separate evaluations"
+    },
+    "gaap": {
+      "asc_606": "A5.1, A5.3 - Revenue recognition accuracy for AI-driven decisions",
+      "asc_815": "A5.1, A5.3 - Financial instruments valuation accuracy"
+    },
+    "gdpr": {
+      "article_5_1_d": "A5.1, A5.2, A5.4 - Accuracy principle: personal data must be accurate and kept up to date",
+      "article_16": "A5.4, A5.5 - Right to rectification of inaccurate personal data",
+      "article_19": "A5.5 - Notification obligation regarding rectification",
+      "article_22_recital_71": "A5.2 - Automated decisions must remain valid (drift compliance)"
+    },
+    "ccpa": {
+      "section_1798_106": "A5.4, A5.5 - Right to correct inaccurate personal information",
+      "section_1798_185": "A5.2 - Automated decision-making must remain accurate and non-discriminatory over time"
+    }
+  },
+  
+  "interdependency_triggers": [
+    {
+      "trigger_id": "T5.1",
+      "trigger_condition": "A5.2 drift > 10%",
+      "triggered_module": "M4_EXPLAINABILITY",
+      "action": "Perform detailed explainability review (SHAP value correlation analysis) to determine if drift is concept drift (explanations still valid) or model breakdown (explanations invalid)",
+      "rationale": "Distinguishes between drift requiring retraining (concept drift) vs. fundamental model failure requiring replacement (model breakdown). SHAP value correlation analysis determines explanation validity post-drift."
+    },
+    {
+      "trigger_id": "T5.2",
+      "trigger_condition": "A5.1 or A5.3 materiality impact exceeds overall materiality threshold",
+      "triggered_module": "M1_GOVERNANCE",
+      "action": "Investigate governance root cause: Why was inaccurate/inadequate model approved for production deployment? Was materiality assessed during deployment approval?",
+      "rationale": "Financial impact investigation traces back to deployment approval process. Materiality exceeded indicates governance breakdown in model risk management. Finding may upgrade to Material Weakness if governance gap is systemic."
+    },
+    {
+      "trigger_id": "T5.3",
+      "trigger_condition": "A5.4 or A5.5 < 0.6 (personal data accuracy or correction rights inadequate)",
+      "triggered_module": "M1_GOVERNANCE",
+      "action": "Investigate privacy governance: Are GDPR/CCPA correction obligations in AI governance policy? Is there DPO oversight of AI inference accuracy?",
+      "rationale": "Personal data accuracy failures often indicate privacy governance gap at policy level"
+    }
+  ],
+  
+  "council_of_experts_integration": {
+    "stage_1_domain_score": "Aggregate score from A5.1-A5.5 using weighted average",
+    "stage_2_peer_review_lens": {
+      "review_by_m1_governance": "Is model performance monitoring mandated in governance framework? Who is accountable for drift alerts? Are GDPR accuracy obligations in policy?",
+      "review_by_m2_fairness": "Does accuracy vary systematically across demographic groups? Is model more error-prone for protected classes?",
+      "review_by_m3_security": "Could accuracy degradation be caused by adversarial data poisoning rather than natural model drift?",
+      "review_by_m4_explainability": "Is performance degradation explainable? Can auditors verify why model accuracy has changed? Are drift explanations valid?"
+    },
+    "stage_3_arbitrator_inputs": "M5 domain score + 4 peer review cards + accuracy trigger log (critical triggers T5.1, T5.2)"
+  }
+}
