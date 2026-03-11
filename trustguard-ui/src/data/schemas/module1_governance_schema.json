@@ -1,300 +1,696 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Module 1: Governance & Compliance Audit Schema",
-  "description": "Machine-readable audit framework for evaluating AI governance in Accounting Information Systems",
-  "version": "2.0",
+  "title": "Module 1: Governance & Compliance Evaluation Schema",
+  "description": "Evaluates AI governance framework, policies, risk management, control documentation, and privacy compliance for AI-based Accounting Information Systems",
+  "version": "3.1",
+  "last_updated": "2026-03-07",
   "module_id": "M1_GOVERNANCE",
-  "regulatory_alignment": {
-    "sox_404": ["Control Environment", "Risk Assessment", "Control Activities", "Monitoring Activities"],
-    "nist_ai_rmf": ["GOVERN-1.1", "GOVERN-1.2", "GOVERN-1.5", "GOVERN-1.6", "GOVERN-2.2", "GOVERN-4.1", "GOVERN-5.1", "GOVERN-6.1", "GOVERN-6.2"],
-    "iso_42001": ["Clause 4.2", "Clause 5.2", "Clause 6.1", "Clause 7.2", "Clause 7.5", "Clause 9.1"],
-    "eu_ai_act": ["Article 9", "Article 11"]
-  },
-  
+  "module_name": "Governance & Compliance",
   "evaluation_criteria": [
     {
       "criterion_id": "G1.1",
-      "criterion_name": "AI Governance Policy Existence",
-      "description": "Documented AI governance framework with board approval",
+      "criterion_name": "AI Governance Policy Existence and Completeness",
       "iqbal_reference": "Governance Audit - Question 1",
-      "check_method": "Review AI policies, RACI charts, ethics committee minutes, SOX 404 control documentation",
-      "pass_criteria": "Board-approved AI policy exists, governance committee meets quarterly, RACI matrix covers all AI systems",
-      
-      "evidence_required": [
-        {
-          "evidence_id": "G1.1-E1",
-          "evidence_type": "document",
-          "evidence_name": "AI Governance Policy Document",
-          "format": ["PDF", "DOCX"],
-          "required_fields": ["policy_scope", "governance_roles", "raci_matrix", "risk_procedures", "ethics_principles", "compliance_mapping"],
-          "approval_standard": "Board or equivalent governance body signature within 12 months",
-          "iso_compliance": "ISO 42001 Clause 5.2"
-        },
-        {
-          "evidence_id": "G1.1-E2",
-          "evidence_type": "meeting_minutes",
-          "evidence_name": "Ethics Committee Meeting Minutes",
-          "format": ["PDF", "DOCX"],
-          "minimum_frequency": "quarterly",
-          "required_attendees": ["Chief Ethics Officer", "AI Governance Lead", "CFO or delegate"]
-        }
-      ],
-      
-      "scoring": {
-        "scale_type": "binary_with_qualifiers",
-        "pass_score": 1.0,
-        "partial_scores": [
-          {"score": 0.75, "condition": "Policy exists but not board-approved"},
-          {"score": 0.5, "condition": "Draft policy exists but not finalized"},
-          {"score": 0.25, "condition": "No policy but governance structure partially documented"}
+      "description": "Validates existence, completeness, and board approval of comprehensive AI governance policy covering all required sections including privacy governance",
+      "check_method": "Review AI governance policy document for completeness, board approval signatures, effective dates, and required sections",
+      "pass_criteria": "Board-approved AI policy exists, updated within 12 months, includes all 7 required sections including privacy governance",
+      "evidence_required": {
+        "evidence_id_prefix": "G1.1-E",
+        "evidence_types": [
+          "policy_document",
+          "board_minutes",
+          "approval_signatures"
         ],
-        "fail_score": 0.0
+        "required_fields": {
+          "policy_sections": [
+            "policy_scope",
+            "governance_roles",
+            "raci_matrix",
+            "risk_procedures",
+            "ethics_principles",
+            "compliance_mapping",
+            "privacy_governance"
+          ],
+          "approval_metadata": [
+            "board_approval_date",
+            "policy_version",
+            "effective_date",
+            "next_review_date"
+          ]
+        },
+        "file_formats": [
+          "PDF",
+          "DOCX"
+        ],
+        "approval_requirements": "Board of Directors or equivalent governance body signature within 12 months"
       },
-      
+      "scoring": {
+        "method": "checklist_percentage",
+        "checklist_items": {
+          "policy_scope": {
+            "weight": 0.14,
+            "description": "AI systems covered clearly defined"
+          },
+          "governance_roles": {
+            "weight": 0.14,
+            "description": "Roles and responsibilities documented"
+          },
+          "raci_matrix": {
+            "weight": 0.14,
+            "description": "RACI chart covering all AI systems"
+          },
+          "risk_procedures": {
+            "weight": 0.15,
+            "description": "AI risk management procedures documented"
+          },
+          "ethics_principles": {
+            "weight": 0.14,
+            "description": "Ethical AI principles defined"
+          },
+          "compliance_mapping": {
+            "weight": 0.14,
+            "description": "Regulatory requirements mapped (SOX, NIST, ISO, EU AI Act)"
+          },
+          "privacy_governance": {
+            "weight": 0.15,
+            "description": "GDPR/CCPA privacy governance framework documented"
+          }
+        },
+        "board_approval_bonus": {
+          "description": "Additional scoring if board-approved within timeframe",
+          "within_6_months": 1.0,
+          "within_12_months": 0.9,
+          "within_24_months": 0.7,
+          "over_24_months": 0.5
+        },
+        "calculation": "sum(section_present × weight) × board_approval_bonus"
+      },
       "severity_mapping": {
-        "score_range": [0.0, 0.4],
-        "sox_classification": "Material Weakness",
-        "justification": "Without documented AI governance policy, no controls exist to prevent/detect material misstatements from AI errors",
-        "nist_impact": "GOVERN function failure",
-        "regulatory_mapping": {
-          "sox_404": "Control Environment deficiency",
-          "nist_govern": "GOVERN-1.1, GOVERN-1.2 not met",
-          "iso_42001": "Clause 5.2 non-compliance",
-          "eu_ai_act": "Article 9 violation (if applicable)"
-        }
+        "score_0.0_to_0.5": "Material Weakness",
+        "score_0.51_to_0.75": "Significant Deficiency",
+        "score_0.76_to_1.0": "Pass"
       }
     },
-    
     {
       "criterion_id": "G1.2",
-      "criterion_name": "Risk Management System for AI",
-      "description": "ISO 42001-compliant risk management throughout AI lifecycle",
+      "criterion_name": "AI Risk Management System",
       "iqbal_reference": "Governance Audit - Question 2",
-      "check_method": "Review risk assessment procedures, risk register, risk treatment plans",
-      "pass_criteria": "Risk management process documented, risk register maintained, risk assessments conducted before AI deployment",
-      
-      "evidence_required": [
-        {
-          "evidence_id": "G1.2-E1",
-          "evidence_type": "risk_register",
-          "evidence_name": "AI Risk Register",
-          "format": ["Excel", "CSV", "Database_Export"],
-          "required_columns": ["risk_id", "risk_description", "likelihood", "impact", "risk_score", "mitigation_plan", "owner", "status"],
-          "minimum_risks_documented": 5,
-          "update_frequency": "monthly"
+      "description": "Assesses AI risk management system per ISO 42001 Clause 6.1 requirements including risk identification, assessment, treatment, and monitoring",
+      "check_method": "Review AI risk register, risk assessment procedures, risk monitoring logs, and treatment plans",
+      "pass_criteria": "AI risk register maintained with minimum 5 documented risks, risk assessment procedure documented, risk monitoring operational, treatment plans for all high risks",
+      "evidence_required": {
+        "evidence_id_prefix": "G1.2-E",
+        "evidence_types": [
+          "risk_register",
+          "risk_assessment_procedure",
+          "risk_monitoring_logs"
+        ],
+        "required_fields": {
+          "risk_register": [
+            "risk_id",
+            "risk_description",
+            "likelihood",
+            "impact",
+            "risk_score",
+            "mitigation_plan",
+            "owner",
+            "status"
+          ],
+          "risk_categories": [
+            "model_risk",
+            "data_risk",
+            "governance_risk",
+            "security_risk",
+            "privacy_risk",
+            "bias_risk"
+          ],
+          "minimum_documented_risks": 5
         },
-        {
-          "evidence_id": "G1.2-E2",
-          "evidence_type": "procedure",
-          "evidence_name": "AI Risk Assessment Procedure",
-          "format": ["PDF", "DOCX"],
-          "required_content": ["risk_identification_methodology", "risk_scoring_criteria", "escalation_procedures", "monitoring_requirements"]
-        }
-      ],
-      
-      "scoring": {
-        "scale_type": "weighted",
-        "components": [
-          {"component": "risk_register_completeness", "weight": 0.4},
-          {"component": "risk_assessment_procedure_quality", "weight": 0.3},
-          {"component": "risk_monitoring_effectiveness", "weight": 0.3}
-        ]
+        "file_formats": [
+          "Excel",
+          "CSV",
+          "PDF"
+        ],
+        "approval_requirements": "Risk register updated within last quarter, risk assessment procedure approved by CRO or equivalent"
       },
-      
-      "severity_mapping": {
-        "score_range": [0.0, 0.5],
-        "sox_classification": "Significant Deficiency",
-        "justification": "Inadequate risk management increases likelihood of undetected AI-related financial risks",
-        "regulatory_mapping": {
-          "sox_404": "Risk Assessment component deficiency",
-          "nist_govern": "MAP-1.1, MAP-1.2, MAP-1.3 not adequately addressed",
-          "iso_42001": "Clause 6.1 non-compliance",
-          "eu_ai_act": "Article 9 requirement not met"
+      "scoring": {
+        "method": "weighted_factors",
+        "factors": {
+          "risk_register_completeness": {
+            "weight": 0.35,
+            "thresholds": {
+              "1.0": "≥10 risks documented covering all 6 categories, all required fields present",
+              "0.75": "5-9 risks documented, most required fields present",
+              "0.5": "5 risks documented but incomplete fields or missing categories",
+              "0.0": "<5 risks documented"
+            }
+          },
+          "risk_assessment_procedure": {
+            "weight": 0.25,
+            "thresholds": {
+              "1.0": "Comprehensive procedure documented, approved, tested within 12 months",
+              "0.75": "Procedure documented and approved, not recently tested",
+              "0.5": "Procedure exists but incomplete or not approved",
+              "0.0": "No documented procedure"
+            }
+          },
+          "risk_monitoring": {
+            "weight": 0.25,
+            "thresholds": {
+              "1.0": "Automated risk monitoring operational, quarterly reviews documented, escalation procedures tested",
+              "0.75": "Manual monitoring operational, quarterly reviews documented",
+              "0.5": "Ad-hoc monitoring only, some documentation gaps",
+              "0.0": "No systematic monitoring"
+            }
+          },
+          "treatment_plans": {
+            "weight": 0.15,
+            "thresholds": {
+              "1.0": "Treatment plans documented for all high/critical risks, implementation tracked",
+              "0.75": "Treatment plans exist for most high risks",
+              "0.5": "Treatment plans incomplete or not tracked",
+              "0.0": "No treatment plans"
+            }
+          }
         }
+      },
+      "severity_mapping": {
+        "score_0.0_to_0.6": "Material Weakness",
+        "score_0.61_to_0.8": "Significant Deficiency",
+        "score_0.81_to_1.0": "Pass"
       }
     },
-    
     {
       "criterion_id": "G1.3",
-      "criterion_name": "AI Control Documentation",
-      "description": "SOX 404-compliant documentation of AI-related controls",
+      "criterion_name": "AI Control Documentation (SOX 404 Compliance)",
       "iqbal_reference": "Governance Audit - Question 3",
-      "check_method": "Review control matrices, control testing documentation, management assessment",
-      "pass_criteria": "Control matrices document AI controls, testing completed for all key controls, deficiencies remediated",
-      
-      "evidence_required": [
-        {
-          "evidence_id": "G1.3-E1",
-          "evidence_type": "control_matrix",
-          "evidence_name": "AI Control Matrix",
-          "format": ["Excel", "CSV"],
-          "required_columns": ["control_id", "control_description", "control_type", "frequency", "owner", "testing_status", "exceptions", "remediation"],
-          "minimum_controls": 10,
-          "coso_mapping_required": true
+      "description": "Validates SOX 404-compliant documentation of AI-related internal controls including control design, testing, and COSO component mapping",
+      "check_method": "Review control matrix, control testing documentation, COSO framework mapping, and exception tracking",
+      "pass_criteria": "Minimum 10 AI controls documented, control testing completed per SOX 404 frequency requirements, COSO component mapping complete, exceptions documented and remediated",
+      "evidence_required": {
+        "evidence_id_prefix": "G1.3-E",
+        "evidence_types": [
+          "control_matrix",
+          "control_testing_documentation",
+          "coso_mapping",
+          "exception_log"
+        ],
+        "required_fields": {
+          "control_matrix": [
+            "control_id",
+            "control_description",
+            "control_type",
+            "frequency",
+            "owner",
+            "testing_status",
+            "exceptions"
+          ],
+          "coso_components": [
+            "Control Environment",
+            "Risk Assessment",
+            "Control Activities",
+            "Information & Communication",
+            "Monitoring Activities"
+          ],
+          "minimum_controls": 10
         },
-        {
-          "evidence_id": "G1.3-E2",
-          "evidence_type": "testing_documentation",
-          "evidence_name": "Control Testing Results",
-          "format": ["Excel", "Database_Export"],
-          "sample_size_standard": "Minimum 25 items per manual control, 100% for automated controls",
-          "testing_frequency": "Quarterly for key controls, annually for others"
-        }
-      ],
-      
+        "file_formats": [
+          "Excel",
+          "PDF"
+        ],
+        "approval_requirements": "Control matrix approved by CFO or Controller, testing completed within required SOX 404 frequency"
+      },
       "scoring": {
-        "scale_type": "percentage_based",
-        "calculation": "Controls documented and tested / Total required controls",
-        "thresholds": {
-          "excellent": 0.95,
-          "good": 0.85,
-          "acceptable": 0.75,
-          "deficient": 0.60
+        "method": "weighted_factors",
+        "factors": {
+          "control_documentation": {
+            "weight": 0.30,
+            "thresholds": {
+              "1.0": "≥15 controls documented with all required fields, control narratives comprehensive",
+              "0.75": "10-14 controls documented, all required fields present",
+              "0.5": "10 controls documented but some fields incomplete",
+              "0.0": "<10 controls documented"
+            }
+          },
+          "testing_completeness": {
+            "weight": 0.35,
+            "thresholds": {
+              "1.0": "All controls tested per SOX 404 frequency (quarterly for key controls, annually for others), sample sizes meet AICPA standards",
+              "0.75": "Most controls tested, minor frequency gaps",
+              "0.5": "Testing incomplete or sample sizes inadequate",
+              "0.0": "Controls not tested or testing >12 months old"
+            }
+          },
+          "coso_mapping": {
+            "weight": 0.20,
+            "thresholds": {
+              "1.0": "All controls mapped to COSO components, coverage across all 5 components",
+              "0.75": "Most controls mapped, coverage across 4-5 components",
+              "0.5": "Partial mapping or gaps in COSO coverage",
+              "0.0": "No COSO mapping"
+            }
+          },
+          "exception_management": {
+            "weight": 0.15,
+            "thresholds": {
+              "1.0": "All exceptions documented, remediation complete or in-progress with timeline, management responses documented",
+              "0.75": "Exceptions documented, most remediated",
+              "0.5": "Exceptions identified but remediation delayed or incomplete",
+              "0.0": "Exceptions not tracked or no remediation"
+            }
+          }
         }
       },
-      
       "severity_mapping": {
-        "score_range": [0.0, 0.7],
-        "sox_classification": "Material Weakness",
-        "justification": "Inadequate control documentation prevents management from assessing ICFR effectiveness per SOX 404",
-        "regulatory_mapping": {
-          "sox_404": "Control Activities documentation deficiency",
-          "nist_govern": "GOVERN-4.1 not met",
-          "iso_42001": "Clause 7.5 (documented information) non-compliance",
-          "eu_ai_act": "Article 11 (technical documentation) requirement not met"
-        }
+        "score_0.0_to_0.6": "Material Weakness",
+        "score_0.61_to_0.8": "Significant Deficiency",
+        "score_0.81_to_1.0": "Pass"
       }
     },
-    
     {
       "criterion_id": "G1.4",
-      "criterion_name": "AI System Inventory",
-      "description": "Maintained inventory of AI systems in AIS per NIST AI RMF GOVERN 1.6",
+      "criterion_name": "AI System Inventory Maintenance",
       "iqbal_reference": "Governance Audit - Question 4",
-      "check_method": "Review AI system inventory, verify completeness, check update frequency",
-      "pass_criteria": "Inventory includes all AI systems, updated quarterly, includes risk classification",
-      
-      "evidence_required": [
-        {
-          "evidence_id": "G1.4-E1",
-          "evidence_type": "inventory",
-          "evidence_name": "AI System Inventory",
-          "format": ["Excel", "CSV", "JSON"],
-          "required_fields": ["system_id", "system_name", "business_process", "transaction_cycle", "deployment_date", "risk_classification", "owner", "status"],
-          "update_frequency": "quarterly"
-        }
-      ],
-      
-      "scoring": {
-        "scale_type": "completeness_check",
-        "criteria": [
-          {"check": "all_ais_systems_included", "weight": 0.5},
-          {"check": "risk_classification_complete", "weight": 0.25},
-          {"check": "update_frequency_met", "weight": 0.25}
-        ]
+      "description": "Validates completeness and currency of AI system inventory including all production AI systems, risk classifications, and ownership",
+      "check_method": "Review AI system inventory for completeness, accuracy, currency, and required metadata",
+      "pass_criteria": "All production AI systems documented, inventory updated within last quarter, risk classifications assigned, system owners identified",
+      "evidence_required": {
+        "evidence_id_prefix": "G1.4-E",
+        "evidence_types": [
+          "ai_system_inventory",
+          "inventory_update_log"
+        ],
+        "required_fields": [
+          "system_id",
+          "system_name",
+          "business_process",
+          "transaction_cycle",
+          "deployment_date",
+          "risk_classification",
+          "owner",
+          "status",
+          "last_updated"
+        ],
+        "file_formats": [
+          "Excel",
+          "CSV"
+        ],
+        "approval_requirements": "Inventory reviewed and approved quarterly by AI Governance Lead"
       },
-      
-      "severity_mapping": {
-        "score_range": [0.0, 0.6],
-        "sox_classification": "Significant Deficiency",
-        "justification": "Incomplete inventory prevents comprehensive risk assessment and monitoring",
-        "regulatory_mapping": {
-          "sox_404": "Information & Communication deficiency",
-          "nist_govern": "GOVERN-1.6, MAP-1.5 not met",
-          "iso_42001": "Clause 7.5 non-compliance"
+      "scoring": {
+        "method": "weighted_factors",
+        "factors": {
+          "completeness": {
+            "weight": 0.40,
+            "thresholds": {
+              "1.0": "All AI systems in financial processes documented with all required fields",
+              "0.75": "All systems documented, minor field gaps",
+              "0.5": "Most systems documented but some missing or incomplete",
+              "0.0": "Significant gaps in inventory"
+            }
+          },
+          "currency": {
+            "weight": 0.30,
+            "thresholds": {
+              "1.0": "Updated within last month",
+              "0.75": "Updated within last quarter",
+              "0.5": "Updated within last 6 months",
+              "0.0": "Not updated in >6 months"
+            }
+          },
+          "risk_classification": {
+            "weight": 0.20,
+            "thresholds": {
+              "1.0": "All systems have risk classification (High/Medium/Low) with justification",
+              "0.75": "All systems classified, some justifications missing",
+              "0.5": "Most systems classified",
+              "0.0": "Risk classifications missing or incomplete"
+            }
+          },
+          "ownership": {
+            "weight": 0.10,
+            "thresholds": {
+              "1.0": "All systems have assigned owner with contact information",
+              "0.75": "All systems have owner, some contact info missing",
+              "0.5": "Most systems have owners",
+              "0.0": "Ownership not clearly assigned"
+            }
+          }
         }
+      },
+      "severity_mapping": {
+        "score_0.0_to_0.7": "Significant Deficiency",
+        "score_0.71_to_1.0": "Pass"
       }
     },
-    
     {
       "criterion_id": "G1.5",
-      "criterion_name": "AI Training and Competency Programs",
-      "description": "NIST AI RMF GOVERN 2.2-compliant AI risk management training",
+      "criterion_name": "AI Training & Competency Programs",
       "iqbal_reference": "Governance Audit - Question 5",
-      "check_method": "Review training materials, attendance records, competency assessments",
-      "pass_criteria": "Training program exists, key personnel trained annually, competency assessments passed",
-      
-      "evidence_required": [
-        {
-          "evidence_id": "G1.5-E1",
-          "evidence_type": "training_records",
-          "evidence_name": "AI Training Attendance Records",
-          "format": ["Excel", "CSV"],
-          "required_fields": ["employee_id", "role", "training_date", "training_type", "completion_status", "assessment_score"],
-          "coverage_requirement": "100% of AI system owners and 80% of finance team"
-        }
-      ],
-      
-      "scoring": {
-        "scale_type": "coverage_percentage",
-        "calculation": "Personnel trained / Total required personnel",
-        "minimum_acceptable": 0.80
+      "description": "Assesses AI-related training programs for relevant personnel including AI system owners, finance team, and auditors",
+      "check_method": "Review training attendance records, training content, assessment scores, and coverage analysis",
+      "pass_criteria": "≥80% of required personnel trained, training covers AI risk management fundamentals, assessment pass rate ≥85%, training completed within 12 months",
+      "evidence_required": {
+        "evidence_id_prefix": "G1.5-E",
+        "evidence_types": [
+          "training_records",
+          "training_materials",
+          "assessment_results"
+        ],
+        "required_fields": [
+          "employee_id",
+          "role",
+          "training_date",
+          "training_type",
+          "completion_status",
+          "assessment_score"
+        ],
+        "file_formats": [
+          "Excel",
+          "PDF"
+        ],
+        "approval_requirements": "Training program approved by HR and AI Governance Lead"
       },
-      
-      "severity_mapping": {
-        "score_range": [0.0, 0.75],
-        "sox_classification": "Control Deficiency",
-        "justification": "Insufficient training increases risk of control failures but unlikely to cause material misstatement alone",
-        "regulatory_mapping": {
-          "sox_404": "Control Environment weakness",
-          "nist_govern": "GOVERN-2.2 partially met",
-          "iso_42001": "Clause 7.2 deficiency"
+      "scoring": {
+        "method": "weighted_factors",
+        "factors": {
+          "coverage": {
+            "weight": 0.40,
+            "thresholds": {
+              "1.0": "≥95% required personnel trained",
+              "0.75": "80-94% required personnel trained",
+              "0.5": "60-79% required personnel trained",
+              "0.0": "<60% required personnel trained"
+            }
+          },
+          "content_quality": {
+            "weight": 0.30,
+            "thresholds": {
+              "1.0": "Comprehensive training covering AI risks, ethics, governance, controls, privacy",
+              "0.75": "Training covers most topics",
+              "0.5": "Basic training, some gaps",
+              "0.0": "Training content inadequate"
+            }
+          },
+          "assessment_results": {
+            "weight": 0.20,
+            "thresholds": {
+              "1.0": "≥90% pass rate, remedial training for failures",
+              "0.75": "85-89% pass rate",
+              "0.5": "70-84% pass rate",
+              "0.0": "<70% pass rate or no assessments"
+            }
+          },
+          "recency": {
+            "weight": 0.10,
+            "thresholds": {
+              "1.0": "Training within last 6 months",
+              "0.75": "Training within last 12 months",
+              "0.5": "Training within last 24 months",
+              "0.0": "Training >24 months old or none"
+            }
+          }
         }
+      },
+      "severity_mapping": {
+        "score_0.0_to_0.7": "Significant Deficiency",
+        "score_0.71_to_1.0": "Pass"
+      }
+    },
+    {
+      "criterion_id": "G1.6",
+      "criterion_name": "ROPA Maintenance (GDPR Article 30)",
+      "iqbal_reference": "Privacy Governance - Question 1",
+      "description": "Validates maintenance of Record of Processing Activities (ROPA) per GDPR Article 30 for AI systems processing personal data",
+      "check_method": "Review ROPA documentation for completeness, accuracy, currency, and GDPR Article 30 compliance",
+      "pass_criteria": "ROPA maintained covering all AI data processing activities, updated within 12 months, includes all Article 30 required fields, DPO reviewed where applicable",
+      "evidence_required": {
+        "evidence_id_prefix": "G1.6-E",
+        "evidence_types": [
+          "ropa_record",
+          "dpo_review_log"
+        ],
+        "required_fields": {
+          "processing_activities": [
+            "activity_name",
+            "purposes",
+            "data_subjects_categories",
+            "personal_data_categories",
+            "recipients",
+            "third_country_transfers",
+            "retention_periods",
+            "security_measures"
+          ],
+          "controller_info": [
+            "name",
+            "contact_details",
+            "dpo_contact"
+          ],
+          "legal_basis": [
+            "legal_basis_per_activity",
+            "legitimate_interests_where_applicable"
+          ]
+        },
+        "file_formats": [
+          "Excel",
+          "PDF"
+        ],
+        "approval_requirements": "ROPA reviewed by DPO or legal counsel within 12 months",
+        "gdpr_articles": [
+          "Article 30 (Records of Processing Activities)"
+        ],
+        "applicability": "Required if processing personal data of EU residents"
+      },
+      "scoring": {
+        "method": "weighted_factors",
+        "factors": {
+          "ropa_completeness": {
+            "weight": 0.40,
+            "thresholds": {
+              "1.0": "All AI processing activities documented with all Article 30 required fields",
+              "0.75": "All activities documented, minor field gaps",
+              "0.5": "Most activities documented but significant gaps",
+              "0.0": "ROPA incomplete or missing"
+            }
+          },
+          "currency": {
+            "weight": 0.25,
+            "thresholds": {
+              "1.0": "Updated within last 6 months",
+              "0.75": "Updated within last 12 months",
+              "0.5": "Updated within last 18 months",
+              "0.0": "Not updated in >18 months"
+            }
+          },
+          "legal_basis_documentation": {
+            "weight": 0.20,
+            "thresholds": {
+              "1.0": "Legal basis clearly documented for all processing activities with justification",
+              "0.75": "Legal basis documented, some justifications incomplete",
+              "0.5": "Legal basis partially documented",
+              "0.0": "Legal basis not documented"
+            }
+          },
+          "dpo_review": {
+            "weight": 0.15,
+            "thresholds": {
+              "1.0": "DPO review documented within 12 months (if DPO required)",
+              "0.75": "DPO review within 18 months or legal counsel review if no DPO",
+              "0.5": "Review exists but outdated",
+              "0.0": "No DPO/legal review"
+            }
+          }
+        },
+        "geographic_exemption": {
+          "description": "If organization does not process EU resident data, criterion scored as N/A",
+          "exemption_documentation_required": "Legal opinion or geographic scope documentation"
+        }
+      },
+      "severity_mapping": {
+        "score_0.0_to_0.5": "Material Weakness (if GDPR applicable)",
+        "score_0.51_to_0.75": "Significant Deficiency",
+        "score_0.76_to_1.0": "Pass",
+        "score_NA": "Not Applicable (geographic exemption documented)"
+      }
+    },
+    {
+      "criterion_id": "G1.7",
+      "criterion_name": "High-Risk AI DPIA Governance Oversight",
+      "iqbal_reference": "Privacy Governance - Question 2",
+      "description": "Validates governance oversight of Data Protection Impact Assessments (DPIAs) for high-risk AI processing per GDPR Article 35",
+      "check_method": "Review DPIA governance procedures, DPO consultation records, board/committee oversight documentation",
+      "pass_criteria": "DPIA governance procedures documented, DPO consulted for all high-risk AI DPIAs, governance committee reviews DPIAs for high-risk systems, remediation tracking for DPIA findings",
+      "evidence_required": {
+        "evidence_id_prefix": "G1.7-E",
+        "evidence_types": [
+          "dpia_governance_procedure",
+          "dpo_consultation_log",
+          "governance_committee_minutes"
+        ],
+        "required_fields": {
+          "dpia_procedures": [
+            "triggers_for_dpia",
+            "dpia_methodology",
+            "dpo_consultation_requirement",
+            "approval_authority",
+            "remediation_tracking"
+          ],
+          "consultation_log": [
+            "ai_system",
+            "dpia_date",
+            "dpo_consulted",
+            "recommendations",
+            "implementation_status"
+          ],
+          "governance_oversight": [
+            "committee_reviewing_dpias",
+            "review_frequency",
+            "escalation_criteria"
+          ]
+        },
+        "file_formats": [
+          "PDF",
+          "DOCX",
+          "Excel"
+        ],
+        "approval_requirements": "DPIA governance procedure approved by legal/DPO, committee minutes show DPIA reviews",
+        "gdpr_articles": [
+          "Article 35 (Data Protection Impact Assessment)",
+          "Article 36 (Prior consultation)"
+        ],
+        "applicability": "Required if processing personal data of EU residents with high-risk AI systems"
+      },
+      "scoring": {
+        "method": "weighted_factors",
+        "factors": {
+          "dpia_procedure_quality": {
+            "weight": 0.35,
+            "thresholds": {
+              "1.0": "Comprehensive DPIA procedure with clear triggers, methodology, DPO consultation requirement, approved within 12 months",
+              "0.75": "Procedure documented and approved, minor gaps",
+              "0.5": "Basic procedure exists but incomplete",
+              "0.0": "No DPIA governance procedure"
+            }
+          },
+          "dpo_consultation": {
+            "weight": 0.30,
+            "thresholds": {
+              "1.0": "DPO consulted for all high-risk AI DPIAs, recommendations documented and tracked",
+              "0.75": "DPO consulted for most DPIAs, some gaps",
+              "0.5": "DPO consultation inconsistent",
+              "0.0": "No DPO consultation (when required)"
+            }
+          },
+          "governance_oversight": {
+            "weight": 0.25,
+            "thresholds": {
+              "1.0": "Governance committee (Board, Ethics Committee, or AI Governance Committee) reviews all high-risk AI DPIAs, minutes document review",
+              "0.75": "Committee reviews most DPIAs",
+              "0.5": "Ad-hoc oversight, not systematic",
+              "0.0": "No governance oversight of DPIAs"
+            }
+          },
+          "remediation_tracking": {
+            "weight": 0.10,
+            "thresholds": {
+              "1.0": "DPIA findings tracked, remediation plans documented, implementation monitored",
+              "0.75": "Findings tracked, some remediation gaps",
+              "0.5": "Inconsistent tracking",
+              "0.0": "No remediation tracking"
+            }
+          }
+        },
+        "geographic_exemption": {
+          "description": "If no high-risk AI processing of EU resident data, criterion scored as N/A",
+          "exemption_documentation_required": "Risk assessment showing no high-risk AI or geographic scope documentation"
+        }
+      },
+      "severity_mapping": {
+        "score_0.0_to_0.5": "Material Weakness (if GDPR applicable to high-risk AI)",
+        "score_0.51_to_0.75": "Significant Deficiency",
+        "score_0.76_to_1.0": "Pass",
+        "score_NA": "Not Applicable (no high-risk AI processing EU data, documented)"
       }
     }
   ],
-  
   "aggregate_scoring": {
     "method": "weighted_average",
-    "weights": {
-      "G1.1": 0.30,
-      "G1.2": 0.25,
-      "G1.3": 0.25,
-      "G1.4": 0.10,
-      "G1.5": 0.10
+    "criteria_weights": {
+      "G1.1": 0.20,
+      "G1.2": 0.18,
+      "G1.3": 0.18,
+      "G1.4": 0.12,
+      "G1.5": 0.12,
+      "G1.6": 0.10,
+      "G1.7": 0.10
     },
-    "overall_thresholds": {
-      "pass": 0.80,
-      "needs_improvement": 0.60,
-      "fail": 0.0
+    "calculation": "sum(criterion_score × weight), excluding N/A criteria and renormalizing weights",
+    "overall_pass_threshold": 0.75,
+    "note": "Privacy governance criteria (G1.6, G1.7) scored N/A if GDPR not applicable; weights renormalized across applicable criteria"
+  },
+  "regulatory_alignment": {
+    "sox_404": {
+      "control_environment": "G1.1, G1.5",
+      "risk_assessment": "G1.2",
+      "control_activities": "G1.3",
+      "information_communication": "G1.4",
+      "monitoring_activities": "G1.2, G1.3"
+    },
+    "nist_ai_rmf": {
+      "govern_1_1": "G1.1 - AI governance policies",
+      "govern_1_2": "G1.1 - Legal and regulatory requirements",
+      "govern_2_2": "G1.5 - Competencies and training",
+      "govern_4_1": "G1.3 - Accountability structures",
+      "govern_5_1": "G1.4 - Organizational integration",
+      "govern_6_1": "G1.2 - Third-party risk management",
+      "govern_6_2": "G1.2 - Third-party resources"
+    },
+    "iso_42001": {
+      "clause_4_2": "G1.4 - Understanding needs and expectations",
+      "clause_5_2": "G1.1 - Top management commitment and policy",
+      "clause_6_1": "G1.2 - Risk and opportunity management",
+      "clause_7_2": "G1.5 - Competence and training",
+      "clause_7_5": "G1.3, G1.4 - Documentation and records"
+    },
+    "eu_ai_act": {
+      "article_9": "G1.1 - Risk management system",
+      "article_11": "G1.3, G1.4 - Documentation and record-keeping"
+    },
+    "gdpr": {
+      "article_24": "G1.1 - Controller responsibility",
+      "article_30": "G1.6 - Records of Processing Activities (ROPA)",
+      "article_35": "G1.7 - Data Protection Impact Assessment",
+      "articles_37_39": "G1.7 - Data Protection Officer where applicable"
+    },
+    "ccpa": {
+      "section_1798_100": "G1.6 - Right to know what data collected",
+      "section_1798_130": "G1.1 - Business security and privacy policy obligations"
     }
   },
-  
-  "reporting_template": {
-    "finding_format": {
-      "finding_id": "string",
-      "criterion_id": "string",
-      "finding_title": "string",
-      "description": "string",
-      "evidence_reviewed": ["array of evidence IDs"],
-      "score": "float (0.0-1.0)",
-      "sox_classification": "enum [Pass, Control Deficiency, Significant Deficiency, Material Weakness]",
-      "regulatory_impact": {
-        "sox_404": "string",
-        "nist_ai_rmf": "string",
-        "iso_42001": "string",
-        "eu_ai_act": "string"
-      },
-      "recommendation": "string",
-      "management_response": "string (optional)",
-      "remediation_deadline": "date (optional)"
-    }
-  },
-  
   "interdependency_triggers": [
     {
       "trigger_id": "T1.1",
-      "trigger_condition": "G1.1 score < 0.5 (Missing or inadequate AI governance policy)",
+      "trigger_condition": "G1.1 < 0.5",
       "triggered_module": "M2_FAIRNESS",
-      "action": "Escalate fairness testing from 10% sampling to 50%+ comprehensive testing",
-      "rationale": "Governance gap indicates higher bias risk; compensate with deeper technical testing"
+      "action": "Escalate fairness testing from standard 10% sample to comprehensive 50% sample",
+      "rationale": "Missing or inadequate governance policy, especially lack of bias detection procedures, indicates higher risk of undetected systematic bias"
     },
     {
       "trigger_id": "T1.2",
-      "trigger_condition": "G1.3 score < 0.7 (Inadequate AI control documentation)",
-      "triggered_module": "M4_EXPLAINABILITY",
-      "action": "Increase scrutiny of audit trail documentation; flag potential PCAOB AS 1105 scope limitation",
-      "rationale": "Poor control documentation often correlates with poor explainability documentation"
+      "trigger_condition": "G1.6 or G1.7 < 0.6 (privacy governance gap)",
+      "triggered_module": "M3_SECURITY_PRIVACY",
+      "action": "Escalate Module 3 privacy criteria (S3.4-S3.6) to comprehensive testing, flag privacy governance gap",
+      "rationale": "Privacy governance weaknesses at policy level indicate higher risk of privacy control failures at technical level"
     }
-  ]
+  ],
+  "council_of_experts_integration": {
+    "stage_1_domain_score": "Aggregate score from G1.1-G1.7 using weighted average",
+    "stage_2_peer_review_lens": {
+      "review_by_m2_fairness": "Does governance framework mandate bias detection? Are fairness accountability owners assigned?",
+      "review_by_m3_security": "Does governance framework mandate security/privacy standards? Are DPO responsibilities clear?",
+      "review_by_m4_explainability": "Does governance mandate explainability standards? Is audit trail governance adequate?",
+      "review_by_m5_accuracy": "Is model performance monitoring mandated? Who is accountable for drift alerts?"
+    },
+    "stage_3_arbitrator_inputs": "M1 domain score + 4 peer review cards + governance trigger log"
+  }
 }

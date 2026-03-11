@@ -1,275 +1,602 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Module 4: Explainability & Audit Trail Schema",
-  "description": "Machine-readable audit framework for evaluating AI explainability and audit trail adequacy meeting PCAOB evidence standards",
-  "version": "2.0",
+  "title": "Module 4: Explainability & Audit Trail Evaluation Schema",
+  "description": "Evaluates AI system explainability, decision traceability, audit trail completeness, and transparency compliance for AI-based Accounting Information Systems",
+  "version": "3.1",
+  "last_updated": "2026-03-07",
   "module_id": "M4_EXPLAINABILITY",
-  "regulatory_alignment": {
-    "pcaob": ["AS 1105 (Audit Evidence)", "AS 2501 (Auditing Accounting Estimates)"],
-    "nist_ai_rmf": ["GOVERN-3.1", "GOVERN-3.2 (Explainable and Interpretable)"],
-    "iso_42001": ["Clause 7.5 (Documented Information)"],
-    "eu_ai_act": ["Article 12 (Record Keeping)", "Article 13 (Transparency)"],
-    "sox_404": ["Information & Communication component"]
-  },
-  
+  "module_name": "Explainability & Audit Trail",
   "evaluation_criteria": [
     {
       "criterion_id": "E4.1",
-      "criterion_name": "AI Decision Explainability for External Auditors",
-      "description": "AI-driven accounting decisions can be understood and challenged by auditors per PCAOB AS 1105",
-      "iqbal_reference": "Explainability & Audit Trail - Question 1",
-      "check_method": "Review SHAP values, LIME explanations, model cards; test whether explanations enable decision traceability",
-      "pass_criteria": "Explanations enable traceability, model cards meet ISO 42001 standards, PCAOB evidence standards met",
-      
-      "evidence_required": [
-        {
-          "evidence_id": "E4.1-E1",
-          "evidence_type": "model_card",
-          "evidence_name": "AI Model Card Documentation",
-          "format": ["PDF", "DOCX", "Markdown"],
-          "required_sections": [
-            {
-              "section": "model_details",
-              "required_fields": ["model_name", "version", "intended_use", "owner", "deployment_date"]
-            },
-            {
-              "section": "training_data",
-              "required_fields": ["data_sources", "data_size", "time_period", "preprocessing_steps", "known_limitations"]
-            },
-            {
-              "section": "performance_metrics",
-              "required_fields": ["accuracy", "precision", "recall", "f1_score", "validation_methodology", "confidence_intervals"]
-            },
-            {
-              "section": "explainability_methods",
-              "required_fields": ["explanation_technique", "global_vs_local", "example_explanations", "interpretation_guidance"]
-            },
-            {
-              "section": "limitations_and_risks",
-              "required_fields": ["known_biases", "failure_modes", "out_of_distribution_behavior", "recommended_human_oversight"]
-            }
-          ],
-          "iso_42001_compliance": "Clause 7.5 - Documented information requirements"
-        },
-        {
-          "evidence_id": "E4.1-E2",
-          "evidence_type": "explanation_samples",
-          "evidence_name": "Sample AI Decision Explanations",
-          "format": ["JSON", "PDF_Report"],
-          "minimum_samples": 10,
-          "sample_criteria": "Representative of decision types (high/low confidence, different contract values, different customer segments)",
-          "required_explanation_elements": [
-            "top_5_contributing_features",
-            "feature_importance_scores",
-            "counterfactual_examples (what would change decision)",
-            "confidence_score",
-            "data_source_references"
-          ],
-          "auditor_interpretability_test": "Independent auditor can trace explanation to source data and understand decision logic"
-        }
-      ],
-      
-      "scoring": {
-        "scale_type": "auditor_usability_assessment",
-        "components": [
-          {
-            "component": "model_card_completeness",
-            "weight": 0.30,
-            "calculation": "Required sections present / Total required sections"
-          },
-          {
-            "component": "explanation_quality",
-            "weight": 0.40,
-            "assessment": "Can auditors trace decisions to source data?",
-            "quality_criteria": [
-              "explanations_reference_source_data",
-              "feature_importance_meaningful",
-              "counterfactuals_provided",
-              "confidence_scores_calibrated"
+      "criterion_name": "AI Decision Explainability & GDPR Transparency",
+      "iqbal_reference": "Explainability Audit - Question 1",
+      "description": "Validates explainability mechanisms (SHAP, LIME, etc.) enabling auditors to understand AI decisions, and meaningful transparency per GDPR Articles 13-14",
+      "check_method": "Review SHAP values, LIME explanations, feature importance analyses, model documentation; verify explanations are meaningful and in plain language for data subjects",
+      "pass_criteria": "Explanations enable decision traceability to source data, explanations produced for ≥95% of decisions, explanations meaningful and comprehensible (GDPR requirement), feature importance documented",
+      "evidence_required": {
+        "evidence_id_prefix": "E4.1-E",
+        "evidence_types": [
+          "shap_analysis",
+          "lime_explanations",
+          "feature_importance",
+          "model_documentation",
+          "plain_language_explanations"
+        ],
+        "required_fields": {
+          "technical_explainability": {
+            "shap_values": [
+              "decision_id",
+              "shap_feature_contributions",
+              "base_value",
+              "predicted_value"
+            ],
+            "lime_explanations": [
+              "decision_id",
+              "lime_feature_weights",
+              "local_explanation"
+            ],
+            "feature_importance": [
+              "feature_name",
+              "global_importance_score",
+              "interpretation"
             ]
           },
-          {
-            "component": "pcaob_as_1105_compliance",
-            "weight": 0.30,
-            "assessment": "Do explanations constitute sufficient appropriate audit evidence?",
-            "sufficiency": "Adequate quantity of explanations covering transaction population",
-            "appropriateness": "Explanations are relevant and reliable for audit purposes"
-          }
-        ],
-        "pass_threshold": 0.85
-      },
-      
-      "severity_mapping": {
-        "score_range": [0.0, 0.7],
-        "sox_classification": "Material Weakness",
-        "justification": "Inadequate explainability prevents auditors from evaluating AI-driven accounting estimates per PCAOB AS 2501, creating audit scope limitation",
-        "audit_opinion_impact": {
-          "financial_statement_audit": "Likely qualified opinion or disclaimer if AI systems material and unexplainable",
-          "icfr_audit": "Adverse opinion possible - controls cannot be understood/tested"
+          "gdpr_transparency": {
+            "meaningful_information": [
+              "logic_of_processing",
+              "significance_of_processing",
+              "envisaged_consequences"
+            ],
+            "plain_language_requirement": "Explanations understandable by average person, not just technical experts",
+            "data_subject_facing_explanations": [
+              "example_explanations",
+              "readability_score",
+              "legal_review_confirmation"
+            ]
+          },
+          "traceability": [
+            "decision_id",
+            "source_data_reference",
+            "explanation_method",
+            "explanation_timestamp"
+          ],
+          "coverage": "Percentage of decisions with explanations available"
         },
-        "regulatory_mapping": {
-          "pcaob_as_1105": "Insufficient audit evidence - explanations do not enable auditor to assess reliability",
-          "pcaob_as_2501": "Cannot evaluate reasonableness of AI-generated accounting estimates",
-          "nist_ai_rmf": "GOVERN-3.1, 3.2 (Explainable and Interpretable) not met",
-          "iso_42001": "Clause 7.5 non-compliance - documented information inadequate",
-          "eu_ai_act": "Article 13 violation - transparency requirements not met"
+        "file_formats": [
+          "JSON",
+          "CSV",
+          "PDF reports",
+          "HTML dashboards"
+        ],
+        "approval_requirements": "Explainability methodology approved by AI Governance Lead and DPO/legal counsel for GDPR compliance",
+        "gdpr_articles": [
+          "Articles 13-14 (Right to meaningful information about automated decision-making)",
+          "Article 5(1)(a) (Transparency principle)"
+        ]
+      },
+      "scoring": {
+        "method": "weighted_factors",
+        "factors": {
+          "technical_explainability": {
+            "weight": 0.40,
+            "thresholds": {
+              "1.0": "SHAP or LIME available for ≥99% decisions, feature importance documented, explanations accurate and validated",
+              "0.75": "Explainability available for ≥95% decisions, feature importance documented",
+              "0.5": "Explainability available for ≥80% decisions or accuracy not validated",
+              "0.0": "Explainability available for <80% decisions or explanations unreliable"
+            }
+          },
+          "decision_traceability": {
+            "weight": 0.30,
+            "thresholds": {
+              "1.0": "Auditors can trace any decision to source data, traceability verified through testing",
+              "0.75": "Traceability exists for most decisions, minor gaps",
+              "0.5": "Traceability incomplete or verification gaps",
+              "0.0": "Cannot reliably trace decisions to source data"
+            }
+          },
+          "gdpr_meaningful_information": {
+            "weight": 0.20,
+            "thresholds": {
+              "1.0": "Plain language explanations available for data subjects, logic/significance/consequences disclosed, legal review confirms GDPR compliance",
+              "0.75": "Plain language explanations exist, minor GDPR compliance gaps",
+              "0.5": "Explanations too technical or incomplete GDPR disclosure",
+              "0.0": "No plain language explanations or GDPR transparency requirements not met"
+            },
+            "applicability": "Full weight if processing EU resident data; scored N/A if not applicable"
+          },
+          "explanation_quality": {
+            "weight": 0.10,
+            "thresholds": {
+              "1.0": "Explanations validated for accuracy, user testing shows comprehensibility, documentation comprehensive",
+              "0.75": "Explanations validated, documentation adequate",
+              "0.5": "Basic validation only",
+              "0.0": "No validation of explanation quality"
+            }
+          }
+        },
+        "geographic_exemption": {
+          "description": "GDPR transparency component scored N/A if not processing EU resident data",
+          "exemption_documentation": "Geographic scope documentation showing no EU data processing"
         }
+      },
+      "severity_mapping": {
+        "score_0.0_to_0.7": "Material Weakness",
+        "score_0.71_to_0.85": "Significant Deficiency",
+        "score_0.86_to_1.0": "Pass"
       }
     },
-    
     {
       "criterion_id": "E4.2",
-      "criterion_name": "Audit Trail Completeness",
-      "description": "Complete audit trail capturing all AI decisions, model versions, and data lineage",
-      "iqbal_reference": "Explainability & Audit Trail - Question 2",
-      "check_method": "Review audit trail logs, test traceability from financial statement back to AI decision and source data",
-      "pass_criteria": "All AI decisions logged with timestamps, model versions, inputs, outputs; retention meets regulatory requirements",
-      
-      "evidence_required": [
-        {
-          "evidence_id": "E4.2-E1",
-          "evidence_type": "audit_trail_logs",
-          "evidence_name": "AI Decision Audit Trail",
-          "format": ["CSV", "JSON", "Database_Export"],
-          "required_fields": [
-            "decision_id",
+      "criterion_name": "AI Audit Trail Completeness",
+      "iqbal_reference": "Explainability Audit - Question 2",
+      "description": "Assesses completeness and integrity of AI system audit trail capturing all decisions, model versions, data lineage, and changes",
+      "check_method": "Review audit logs for completeness, retention, immutability, and PCAOB AS 1105 sufficiency",
+      "pass_criteria": "Audit trail captures 100% of AI decisions, logs retained for 7 years per SOX, logs immutable/tamper-evident, data lineage documented",
+      "evidence_required": {
+        "evidence_id_prefix": "E4.2-E",
+        "evidence_types": [
+          "audit_logs",
+          "log_retention_policy",
+          "immutability_verification",
+          "data_lineage_documentation"
+        ],
+        "required_fields": {
+          "audit_log_content": [
             "timestamp",
-            "model_name",
+            "decision_id",
             "model_version",
             "input_data_hash",
-            "output_decision",
-            "confidence_score",
-            "explanation_reference",
-            "user_id_if_overridden",
-            "transaction_id_financial_system"
+            "output",
+            "user_id",
+            "explanation_reference"
           ],
-          "retention_period": "7 years (matches financial record retention)",
-          "completeness_requirement": "100% of AI-driven financial decisions logged"
+          "log_retention": [
+            "retention_period",
+            "storage_location",
+            "backup_procedures",
+            "deletion_policy"
+          ],
+          "immutability": [
+            "tamper_evidence_mechanism",
+            "hash_verification",
+            "blockchain_or_WORM_storage"
+          ],
+          "data_lineage": [
+            "source_system",
+            "transformations",
+            "data_quality_checks",
+            "lineage_diagram"
+          ]
         },
-        {
-          "evidence_id": "E4.2-E2",
-          "evidence_type": "data_lineage_documentation",
-          "evidence_name": "Data Lineage Mapping",
-          "format": ["Diagram", "JSON_Graph"],
-          "required_mapping": "Source data → AI model → Financial statement line item",
-          "traceability_test": "Auditor can trace any financial statement amount back to AI decision and source data"
-        }
-      ],
-      
-      "scoring": {
-        "scale_type": "completeness_and_traceability",
-        "components": [
-          {
-            "component": "log_completeness",
-            "weight": 0.40,
-            "calculation": "AI decisions logged / Total AI decisions made",
-            "target": 1.00
-          },
-          {
-            "component": "required_fields_present",
-            "weight": 0.30,
-            "calculation": "Required fields populated / Total required fields",
-            "critical_fields": ["model_version", "input_data_hash", "transaction_id"]
-          },
-          {
-            "component": "traceability_validated",
-            "weight": 0.30,
-            "test": "Sample 25 financial statement amounts; verify traceable to AI decision and source data",
-            "pass_criteria": "100% of sample traceable"
-          }
+        "file_formats": [
+          "Log files",
+          "JSON",
+          "Database exports",
+          "PDF documentation"
         ],
-        "pass_threshold": 0.95
+        "approval_requirements": "Audit trail architecture approved by IT Audit Lead, retention policy complies with SOX 404 7-year requirement",
+        "pcaob_standards": "AS 1105 (Audit Evidence) - audit trail must provide sufficient and appropriate evidence"
       },
-      
-      "severity_mapping": {
-        "score_range": [0.0, 0.8],
-        "sox_classification": "Significant Deficiency to Material Weakness",
-        "justification": "Incomplete audit trail prevents verification of financial statement accuracy and violates record retention requirements",
-        "classification_logic": {
-          "below_0.5": "Material Weakness - extensive gaps prevent audit",
-          "0.5_to_0.8": "Significant Deficiency - some gaps exist but partial audit possible"
-        },
-        "regulatory_mapping": {
-          "pcaob_as_1105": "Audit evidence inadequate - cannot verify AI decisions",
-          "sox_404": "Information & Communication component deficiency",
-          "iso_42001": "Clause 7.5 non-compliance",
-          "eu_ai_act": "Article 12 (Record Keeping) violation"
+      "scoring": {
+        "method": "weighted_factors",
+        "factors": {
+          "completeness": {
+            "weight": 0.35,
+            "thresholds": {
+              "1.0": "100% of AI decisions logged with all required fields",
+              "0.75": "≥99% decisions logged, all required fields present",
+              "0.5": "≥95% decisions logged or some fields missing",
+              "0.0": "<95% decisions logged or significant field gaps"
+            }
+          },
+          "retention_compliance": {
+            "weight": 0.25,
+            "thresholds": {
+              "1.0": "7-year retention policy documented and operational, tested through sampling",
+              "0.75": "7-year retention policy documented, testing incomplete",
+              "0.5": "Retention policy exists but <7 years or untested",
+              "0.0": "No retention policy or retention <7 years"
+            }
+          },
+          "immutability": {
+            "weight": 0.25,
+            "thresholds": {
+              "1.0": "Tamper-evident mechanism implemented (blockchain, WORM storage, cryptographic hashing), verified through testing",
+              "0.75": "Tamper-evident mechanism implemented, not recently tested",
+              "0.5": "Partial immutability controls",
+              "0.0": "No immutability controls, logs can be modified"
+            }
+          },
+          "data_lineage": {
+            "weight": 0.15,
+            "thresholds": {
+              "1.0": "Complete data lineage from source to AI decision, lineage diagram maintained, transformations documented",
+              "0.75": "Data lineage mostly documented, minor gaps",
+              "0.5": "Partial data lineage",
+              "0.0": "No data lineage documentation"
+            }
+          }
         }
+      },
+      "severity_mapping": {
+        "score_0.0_to_0.7": "Material Weakness",
+        "score_0.71_to_0.85": "Significant Deficiency",
+        "score_0.86_to_1.0": "Pass"
       }
     },
-    
     {
       "criterion_id": "E4.3",
-      "criterion_name": "Model Version Control and Change Documentation",
-      "description": "All AI model changes documented with impact assessment and audit trail",
-      "iqbal_reference": "Explainability & Audit Trail - Question 3",
-      "check_method": "Review model version history, change logs, impact assessments, approval records",
-      "pass_criteria": "All model updates documented, impact assessments completed, changes approved by control owners",
-      
-      "evidence_required": [
-        {
-          "evidence_id": "E4.3-E1",
-          "evidence_type": "version_control_log",
-          "evidence_name": "Model Version Control History",
-          "format": ["Git_Log", "Version_Control_Export", "Excel"],
-          "required_fields": [
-            "version_number",
-            "deployment_date",
-            "developer",
-            "validator",
-            "approver",
-            "change_description",
-            "impact_assessment_reference",
-            "rollback_procedure"
+      "criterion_name": "Model Documentation & Version Control",
+      "iqbal_reference": "Explainability Audit - Question 3",
+      "description": "Evaluates model documentation quality (model cards, architecture documentation) and version control rigor",
+      "check_method": "Review model cards for completeness per ISO 42001 standards, verify version control system captures all model changes",
+      "pass_criteria": "Model cards complete with all 5 required sections, version control operational capturing all changes, model lineage traceable",
+      "evidence_required": {
+        "evidence_id_prefix": "E4.3-E",
+        "evidence_types": [
+          "model_cards",
+          "version_control_logs",
+          "architecture_documentation"
+        ],
+        "required_fields": {
+          "model_card_sections": [
+            "model_details",
+            "intended_use",
+            "factors",
+            "metrics",
+            "evaluation_data",
+            "training_data",
+            "quantitative_analyses",
+            "ethical_considerations",
+            "caveats_recommendations"
           ],
-          "approval_requirement": "Finance control owner approval for production deployments"
-        }
-      ],
-      
-      "scoring": {
-        "scale_type": "change_management_compliance",
-        "calculation": "Model changes with complete documentation / Total model changes",
-        "pass_threshold": 0.95
+          "version_control": [
+            "version_id",
+            "change_date",
+            "changes_description",
+            "approver",
+            "previous_version",
+            "change_reason"
+          ],
+          "architecture_documentation": [
+            "model_type",
+            "hyperparameters",
+            "training_procedure",
+            "deployment_configuration"
+          ]
+        },
+        "file_formats": [
+          "PDF",
+          "Markdown",
+          "HTML",
+          "Git logs"
+        ],
+        "approval_requirements": "Model cards reviewed and approved by AI Governance Lead, version control tested for completeness",
+        "iso_42001_reference": "Clause 7.5 - Documented information"
       },
-      
+      "scoring": {
+        "method": "weighted_factors",
+        "factors": {
+          "model_card_completeness": {
+            "weight": 0.40,
+            "thresholds": {
+              "1.0": "Model cards complete with all 9 sections, updated within last 6 months",
+              "0.75": "Model cards complete with 7-8 sections, updated within 12 months",
+              "0.5": "Model cards exist but incomplete (5-6 sections) or outdated",
+              "0.0": "No model cards or <5 sections documented"
+            }
+          },
+          "version_control_rigor": {
+            "weight": 0.35,
+            "thresholds": {
+              "1.0": "All model changes versioned, approvals documented, rollback capability tested",
+              "0.75": "Most changes versioned, approval process operational",
+              "0.5": "Basic version control, gaps in approval tracking",
+              "0.0": "No version control or significant gaps"
+            }
+          },
+          "architecture_documentation": {
+            "weight": 0.15,
+            "thresholds": {
+              "1.0": "Comprehensive architecture documentation including hyperparameters, training procedure, deployment config",
+              "0.75": "Architecture documented, minor gaps",
+              "0.5": "Basic documentation",
+              "0.0": "Architecture not documented"
+            }
+          },
+          "documentation_accessibility": {
+            "weight": 0.10,
+            "thresholds": {
+              "1.0": "Documentation centrally stored, version-controlled, accessible to auditors and relevant stakeholders",
+              "0.75": "Documentation accessible, some organization gaps",
+              "0.5": "Documentation scattered or access limitations",
+              "0.0": "Documentation not readily accessible"
+            }
+          }
+        }
+      },
       "severity_mapping": {
-        "score_range": [0.0, 0.8],
-        "sox_classification": "Significant Deficiency",
-        "justification": "Undocumented model changes prevent auditors from assessing impact on financial reporting controls"
+        "score_0.0_to_0.7": "Significant Deficiency",
+        "score_0.71_to_1.0": "Pass"
+      }
+    },
+    {
+      "criterion_id": "E4.4",
+      "criterion_name": "Human Review Mechanism (GDPR Article 22)",
+      "iqbal_reference": "Privacy Audit - Question 5",
+      "description": "Validates availability of human intervention and review for automated decisions per GDPR Article 22 right to human intervention",
+      "check_method": "Review human review procedures, request logs, reviewer qualifications, decision contestation process",
+      "pass_criteria": "Human review available upon request, reviewers trained and qualified, review completed within 5 business days, data subjects can express point of view and contest decisions",
+      "evidence_required": {
+        "evidence_id_prefix": "E4.4-E",
+        "evidence_types": [
+          "human_review_procedure",
+          "review_request_log",
+          "reviewer_training_records",
+          "contestation_procedure"
+        ],
+        "required_fields": {
+          "review_procedure": {
+            "request_mechanism": "How data subjects request human review",
+            "reviewer_qualifications": "Training and expertise requirements for human reviewers",
+            "review_timeline": "Target response time (GDPR: without undue delay)",
+            "review_authority": "Can human reviewer override AI decision?"
+          },
+          "request_log": [
+            "request_date",
+            "requester_id",
+            "ai_decision_id",
+            "reviewer_assigned",
+            "review_date",
+            "review_outcome",
+            "turnaround_time"
+          ],
+          "express_point_of_view": "Mechanism for data subject to provide context/objections during review",
+          "contestation": [
+            "contestation_process",
+            "escalation_path",
+            "final_decision_authority"
+          ]
+        },
+        "file_formats": [
+          "PDF procedure documents",
+          "Excel logs"
+        ],
+        "approval_requirements": "Human review procedure approved by DPO/legal counsel, tested within 12 months",
+        "gdpr_articles": [
+          "Article 22(3) - Right to obtain human intervention, express point of view, contest decision"
+        ],
+        "applicability": "Required for solely automated decisions with legal or similarly significant effects on EU residents"
+      },
+      "scoring": {
+        "method": "weighted_factors",
+        "factors": {
+          "procedure_existence": {
+            "weight": 0.25,
+            "thresholds": {
+              "1.0": "Comprehensive human review procedure documented, approved, tested within 12 months",
+              "0.75": "Procedure documented and approved, not recently tested",
+              "0.5": "Basic procedure exists, gaps in documentation",
+              "0.0": "No human review procedure"
+            }
+          },
+          "reviewer_competence": {
+            "weight": 0.25,
+            "thresholds": {
+              "1.0": "Reviewers trained on AI system, decision domain, and GDPR requirements; competency validated",
+              "0.75": "Reviewers trained, validation incomplete",
+              "0.5": "Minimal training",
+              "0.0": "No reviewer training or competency verification"
+            }
+          },
+          "response_timeliness": {
+            "weight": 0.25,
+            "thresholds": {
+              "1.0": "≥95% of reviews completed within 48 hours, 100% within 5 business days",
+              "0.75": "≥90% within 5 business days",
+              "0.5": "≥75% within 5 business days or average >5 days",
+              "0.0": "Frequent delays >10 business days"
+            }
+          },
+          "contestation_mechanism": {
+            "weight": 0.25,
+            "thresholds": {
+              "1.0": "Data subjects can express point of view, contest decisions, escalate; process documented and operational",
+              "0.75": "Contestation mechanism exists, minor procedural gaps",
+              "0.5": "Limited contestation process",
+              "0.0": "No contestation mechanism"
+            }
+          }
+        },
+        "geographic_exemption": {
+          "description": "Criterion scored N/A if AI does not make solely automated decisions with legal/significant effects OR not processing EU resident data",
+          "exemption_documentation": "Legal assessment confirming exemption"
+        }
+      },
+      "severity_mapping": {
+        "score_0.0_to_0.5": "Material Weakness (if applicable)",
+        "score_0.51_to_0.75": "Significant Deficiency",
+        "score_0.76_to_1.0": "Pass",
+        "score_NA": "Not Applicable (documented exemption)"
+      }
+    },
+    {
+      "criterion_id": "E4.5",
+      "criterion_name": "CCPA Opt-Out & Right to Know (§1798.100, §1798.185)",
+      "iqbal_reference": "Privacy Audit - Question 6",
+      "description": "Validates CCPA consumer rights implementation for AI-driven decisions: right to know about AI use, right to opt-out of automated decision-making, right to access logic",
+      "check_method": "Review privacy policy disclosures, opt-out mechanisms, consumer request handling procedures, logic disclosure practices",
+      "pass_criteria": "Privacy policy discloses AI use in decision-making, opt-out mechanism operational, consumers can access information about decision logic, request handling within statutory timelines",
+      "evidence_required": {
+        "evidence_id_prefix": "E4.5-E",
+        "evidence_types": [
+          "privacy_policy_excerpt",
+          "opt_out_mechanism",
+          "consumer_request_log",
+          "logic_disclosure_documentation"
+        ],
+        "required_fields": {
+          "privacy_policy_disclosure": {
+            "ai_use_disclosure": "Privacy policy discloses use of automated decision-making technology",
+            "categories_of_data": "Categories of personal information used in AI decisions disclosed",
+            "purposes": "Purposes of automated decision-making disclosed",
+            "opt_out_instructions": "Clear instructions for opting out of automated decision-making"
+          },
+          "opt_out_mechanism": [
+            "opt_out_link_placement",
+            "request_verification_method",
+            "processing_timeline",
+            "alternative_service_availability"
+          ],
+          "consumer_request_handling": {
+            "request_types": [
+              "right_to_know",
+              "opt_out",
+              "access_to_logic"
+            ],
+            "request_log": [
+              "request_date",
+              "request_type",
+              "verification_status",
+              "response_date",
+              "turnaround_days"
+            ],
+            "response_timeline": "45 days per CCPA §1798.130"
+          },
+          "logic_disclosure": [
+            "explanation_of_decision_logic",
+            "significance_and_envisaged_consequences",
+            "consumer_facing_documentation"
+          ]
+        },
+        "file_formats": [
+          "PDF",
+          "HTML screenshots",
+          "Excel logs"
+        ],
+        "approval_requirements": "Privacy policy approved by legal counsel, opt-out mechanism tested within 12 months",
+        "ccpa_sections": [
+          "§1798.100 (Right to know)",
+          "§1798.185 (Automated decision-making regulations)",
+          "CPRA §1798.185(a)(16) (Access to logic)"
+        ],
+        "applicability": "Required if processing personal information of California residents"
+      },
+      "scoring": {
+        "method": "weighted_factors",
+        "factors": {
+          "privacy_policy_disclosure": {
+            "weight": 0.30,
+            "thresholds": {
+              "1.0": "Comprehensive AI disclosure in privacy policy, plain language, opt-out instructions prominent",
+              "0.75": "Disclosure exists, minor clarity gaps",
+              "0.5": "Minimal disclosure or difficult to locate",
+              "0.0": "No AI use disclosure in privacy policy"
+            }
+          },
+          "opt_out_mechanism": {
+            "weight": 0.30,
+            "thresholds": {
+              "1.0": "Opt-out mechanism operational, easily accessible, processing within 15 days, alternative service available",
+              "0.75": "Mechanism operational, minor accessibility or timing gaps",
+              "0.5": "Mechanism exists but delays or accessibility issues",
+              "0.0": "No functional opt-out mechanism"
+            }
+          },
+          "request_handling": {
+            "weight": 0.25,
+            "thresholds": {
+              "1.0": "≥95% of requests responded to within 45 days, complete information provided",
+              "0.75": "≥90% within 45 days, mostly complete information",
+              "0.5": "≥75% within 45 days or incomplete responses",
+              "0.0": "Frequent delays >45 days or inadequate responses"
+            }
+          },
+          "logic_access": {
+            "weight": 0.15,
+            "thresholds": {
+              "1.0": "Consumers can access meaningful information about decision logic per CPRA §1798.185(a)(16), plain language explanations provided",
+              "0.75": "Logic access available, some clarity gaps",
+              "0.5": "Limited logic disclosure",
+              "0.0": "No mechanism for consumers to access decision logic"
+            }
+          }
+        },
+        "geographic_exemption": {
+          "description": "Criterion scored N/A if not processing California resident personal information",
+          "exemption_documentation": "Legal opinion confirming no California resident data processing"
+        }
+      },
+      "severity_mapping": {
+        "score_0.0_to_0.5": "Material Weakness (if applicable)",
+        "score_0.51_to_0.75": "Significant Deficiency",
+        "score_0.76_to_1.0": "Pass",
+        "score_NA": "Not Applicable (geographic exemption documented)"
       }
     }
   ],
-  
   "aggregate_scoring": {
-    "method": "minimum_threshold_with_weighted",
-    "critical_criteria": ["E4.1", "E4.2"],
-    "critical_minimum": 0.85,
-    "weights": {
-      "E4.1": 0.45,
-      "E4.2": 0.40,
-      "E4.3": 0.15
+    "method": "weighted_average",
+    "criteria_weights": {
+      "E4.1": 0.30,
+      "E4.2": 0.30,
+      "E4.3": 0.20,
+      "E4.4": 0.10,
+      "E4.5": 0.10
     },
-    "note": "If E4.1 or E4.2 < 0.85, overall module fails - explainability and audit trail are non-negotiable for financial audits"
+    "calculation": "sum(criterion_score × weight), excluding N/A criteria and renormalizing weights",
+    "overall_pass_threshold": 0.80,
+    "note": "Privacy criteria (E4.4, E4.5) scored N/A if not applicable; weights renormalized. High threshold (0.80) reflects critical nature of explainability for audit validity."
   },
-  
+  "regulatory_alignment": {
+    "pcaob_standards": {
+      "as_1105": "E4.1, E4.2 - Audit Evidence (sufficiency and appropriateness)",
+      "as_2110": "E4.2 - Identifying and assessing risks",
+      "as_2301": "E4.2 - Auditor's responses to assessed risks"
+    },
+    "nist_ai_rmf": {
+      "explainable_interpretable": "E4.1 - All criteria align with Explainable & Interpretable characteristic",
+      "measure_3_1": "E4.1 - Interpretability and explainability",
+      "measure_3_2": "E4.2 - Transparency in AI system development"
+    },
+    "iso_42001": {
+      "clause_7_5": "E4.3 - Documented information requirements",
+      "clause_9_1": "E4.2 - Monitoring, measurement, analysis, and evaluation"
+    },
+    "eu_ai_act": {
+      "article_12": "E4.3 - Record-keeping requirements",
+      "article_13": "E4.1 - Transparency and provision of information to users"
+    },
+    "gdpr": {
+      "articles_13_14": "E4.1, E4.4 - Right to meaningful information about automated decision-making logic, significance, consequences",
+      "article_22": "E4.4 - Right to obtain human intervention, express point of view, contest automated decisions",
+      "article_5_1_a": "E4.1 - Transparency principle"
+    },
+    "ccpa": {
+      "section_1798_100": "E4.5 - Right to know categories and specific pieces of personal information used",
+      "section_1798_185": "E4.5 - Right to opt-out of automated decision-making",
+      "cpra_section_1798_185_a_16": "E4.5 - Right to access logic behind automated decisions and request correction"
+    }
+  },
   "interdependency_triggers": [
     {
       "trigger_id": "T4.1",
-      "trigger_condition": "E4.1 or E4.2 score < 0.7 (inadequate explainability or audit trail)",
+      "trigger_condition": "E4.1 or E4.2 < 0.7 (inadequate explainability or audit trail)",
       "triggered_module": "ALL_MODULES",
-      "action": "Flag all other module findings as 'Lower Confidence' since lack of explainability prevents full validation",
-      "escalation": "Orchestration layer escalates to human auditors as potential scope limitation per PCAOB AS 1105 (insufficient audit evidence)"
-    },
-    {
-      "trigger_id": "T4.2",
-      "trigger_condition": "Receives drift alert from Module 5 (T5.1)",
-      "action": "Perform detailed explainability review to determine if drift broke explanation validity",
-      "investigation_questions": [
-        "Are SHAP explanations still valid given drift?",
-        "Is drift concept drift (explanations meaningful) or model breakdown (explanations invalid)?",
-        "Can auditors still rely on explanations for PCAOB AS 1105 compliance?",
-        "Recommendation: retrain vs. replace model?"
-      ]
+      "action": "Flag all other module findings as 'Lower Confidence' and escalate to human auditors as potential PCAOB AS 1105 scope limitation",
+      "rationale": "Lack of explainability prevents full validation of other modules' findings. Cannot verify governance controls, fairness metrics, security measures, or accuracy claims without adequate audit trail and explanations. Potential scope limitation in external audit."
     }
-  ]
+  ],
+  "council_of_experts_integration": {
+    "stage_1_domain_score": "Aggregate score from E4.1-E4.5 using weighted average",
+    "stage_2_peer_review_lens": {
+      "review_by_m1_governance": "Is governance documentation itself explainable and traceable? Do RACI charts map to auditable decisions?",
+      "review_by_m2_fairness": "Are fairness metrics explained to affected parties? Can auditors trace a biased decision to its root cause?",
+      "review_by_m3_security": "Are security incident responses explainable and documented to PCAOB AS 1105 evidentiary standards? Are explanation artifacts secured?",
+      "review_by_m5_accuracy": "Is performance degradation explainable? Can auditors verify why a model's accuracy has changed?"
+    },
+    "stage_3_arbitrator_inputs": "M4 domain score + 4 peer review cards + explainability trigger log (critical trigger T4.1)"
+  }
 }
