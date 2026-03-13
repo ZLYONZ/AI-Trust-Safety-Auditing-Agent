@@ -7,4 +7,4 @@ module = GovernanceModule()
 
 result = module.run(doc)
 
-print(result.json(indent=2))
+print(result.model_dump())
