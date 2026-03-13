@@ -11,7 +11,7 @@ class GovernanceModule:
 
     def run(self, document_text):
 
-        prompt = build_prompt(document_text)
+        prompt = build_prompt(document_text, GOVERNANCE_CRITERIA)
 
         response = client.chat.completions.create(
             model="gpt-4.1",
@@ -29,7 +29,7 @@ Return ONLY JSON in this format:
  "findings":[
   {
    "criterion":"...",
-   "status":"full | partial | missing",
+   "status":"compliant | partial | non-compliant",
    "evidence":"exact quote from document",
    "risk_level":"low | medium | high"
   }
