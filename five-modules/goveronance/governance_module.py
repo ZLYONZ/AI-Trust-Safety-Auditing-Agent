@@ -65,10 +65,8 @@ Return ONLY JSON in this format:
         # -------- calculate score --------
 
         score_map = {
-            "full": 100,
-            "partial": 50,
-            "missing": 0,
             "compliant": 100,
+            "partial": 50,
             "non-compliant": 0
         }
 
