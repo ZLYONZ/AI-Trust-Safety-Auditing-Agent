@@ -16,7 +16,7 @@ Document:
 For each governance criterion determine:
 
 criterion
-status (compliant / partial / non-compliant)
+status (full / partial / missing)
 evidence (quote the exact sentence from the document)
 risk_level (low / medium / high)
 
