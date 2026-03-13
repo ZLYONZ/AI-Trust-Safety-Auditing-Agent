@@ -1,19 +1,19 @@
-def build_prompt(document_text):
+def build_prompt(document_text, criteria):
+
+    criteria_text = "\n".join([f"{i+1}. {c}" for i, c in enumerate(criteria)])
 
     prompt = f"""
 You are an AI governance auditor.
 
-Evaluate the organization's AI governance structure based on:
+Evaluate the organization’s AI governance structure based on the following governance criteria:
 
-- ISO 42001
-- GDPR
-- NIST AI RMF
+{criteria_text}
 
 Document:
 {document_text}
 
 
-For each governance criterion determine:
+For EACH governance criterion determine:
 
 criterion
 status (compliant / partial / non-compliant)
@@ -23,10 +23,13 @@ risk_level (low / medium / high)
 
 IMPORTANT:
 
-1. The evidence MUST be an exact quote from the document.
-2. Do not summarize the evidence.
-3. If no evidence exists, write "No evidence found in document".
-4. Return ONLY JSON.
+1. Evaluate EACH criterion separately.
+2. The evidence MUST be an exact quote from the document.
+3. Do not summarize the evidence.
+4. If no evidence exists, write "No evidence found in document".
+5. Return EXACTLY one finding per criterion.
+6. Return ONLY JSON.
+
 
 Format:
 
@@ -40,7 +43,6 @@ Format:
   }}
  ]
 }}
-
 """
 
     return prompt
