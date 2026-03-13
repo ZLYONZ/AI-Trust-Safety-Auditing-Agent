@@ -12,7 +12,7 @@ class GovernanceModule:
         prompt = build_prompt(document_text)
 
         response = client.chat.completions.create(
-            model="gpt-4",
+            model="gpt-4.1",
             messages=[
                 {"role":"system","content":"You are an AI governance auditor"},
                 {"role":"user","content":prompt}
