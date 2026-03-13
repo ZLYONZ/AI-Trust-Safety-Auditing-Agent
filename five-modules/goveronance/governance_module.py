@@ -67,7 +67,9 @@ Return ONLY JSON in this format:
         score_map = {
             "full": 100,
             "partial": 50,
-            "missing": 0
+            "missing": 0,
+            "compliant": 100,
+            "non-compliant": 0
         }
 
         scores = [score_map[f.status] for f in findings]
