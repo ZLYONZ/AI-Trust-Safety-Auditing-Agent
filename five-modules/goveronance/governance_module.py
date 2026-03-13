@@ -43,7 +43,12 @@ Return ONLY JSON in this format:
 
         analysis = response.choices[0].message.content
 
+        print("LLM RAW OUTPUT:")
+        print(analysis)
+
         data = json.loads(analysis)
+
+        print(data)
 
         findings = []
 
