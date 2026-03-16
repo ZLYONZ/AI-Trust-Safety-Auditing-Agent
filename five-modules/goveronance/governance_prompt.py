@@ -44,15 +44,16 @@ DOCUMENT TO ANALYZE
 SCORING RULES
 ========================
 
-Score each criterion using the following numeric scale:
+SCORING SCALE
 
-1.0 → Fully compliant (all requirements satisfied)
+Each criterion must be scored using one of the following values:
 
-0.75 → Minor gaps (requirements mostly satisfied)
+1.0
+0.75
+0.5
+0.0
 
-0.5 → Significant gaps (major elements missing)
-
-0.0 → Missing or incomplete
+The meaning of each score is defined in the scoring_method of the criterion.
 
 
 ========================
