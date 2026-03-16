@@ -1,14 +1,30 @@
 from pydantic import BaseModel
 from typing import List
 
-class Finding(BaseModel):
-    criterion: str
-    status: str
+
+class GovernanceFinding(BaseModel):
+
+    criterion_id: str
+
+    description: str
+
+    score: float
+
     evidence: str
-    risk_level: str
+
+    severity: str
+
+    weight: float
+
 
 class GovernanceResult(BaseModel):
-    module: str
-    score: int
+
+    module_id: str
+
+    module_score: float
+
+    pass_threshold: float
+
     risk_level: str
-    findings: List[Finding]
+
+    findings: List[GovernanceFinding]
