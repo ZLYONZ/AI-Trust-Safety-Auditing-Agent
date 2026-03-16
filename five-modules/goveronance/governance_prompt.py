@@ -1,48 +1,95 @@
 def build_prompt(document_text, criteria):
 
-    criteria_text = "\n".join([f"{i+1}. {c}" for i, c in enumerate(criteria)])
+    criteria_section = ""
+
+    for c in criteria:
+
+        criteria_section += f"""
+Criterion ID: {c["id"]}
+Description: {c["description"]}
+
+Check Method:
+{c["check_method"]}
+
+Pass Criteria:
+{c["pass_criteria"]}
+
+Evidence Requirements:
+{c["evidence_requirements"]}
+
+Scoring Methodology:
+{c["scoring_method"]}
+
+Weight: {c["weight"]}
+"""
 
     prompt = f"""
-You are an AI governance auditor.
+You are an AI governance compliance auditor.
 
-Evaluate the organization’s AI governance structure based on the following governance criteria:
+Your task is to evaluate the organization's AI governance practices based on the following evaluation criteria.
 
-{criteria_text}
+========================
+EVALUATION CRITERIA
+========================
 
-Document:
+{criteria_section}
+
+========================
+DOCUMENT TO ANALYZE
+========================
+
 {document_text}
 
+========================
+SCORING RULES
+========================
 
-For EACH governance criterion determine:
+Score each criterion using the following numeric scale:
 
-criterion
-status (compliant / partial / non-compliant)
-evidence (quote the exact sentence from the document)
-risk_level (low / medium / high)
+1.0 → Fully compliant (all requirements satisfied)
 
+0.75 → Minor gaps (requirements mostly satisfied)
 
-IMPORTANT:
+0.5 → Significant gaps (major elements missing)
 
-1. Evaluate EACH criterion separately.
-2. The evidence MUST be an exact quote from the document.
-3. Do not summarize the evidence.
-4. If no evidence exists, write "No evidence found in document".
-5. Return EXACTLY one finding per criterion.
-6. Return ONLY JSON.
+0.0 → Missing or incomplete
 
 
-Format:
+========================
+EVIDENCE RULES
+========================
+
+Evidence must:
+
+• be an exact quote from the document  
+• directly support the score  
+• if no evidence exists, return "No evidence found in document"
+
+
+========================
+OUTPUT FORMAT
+========================
+
+Return ONLY valid JSON.
+
+Structure:
 
 {{
  "findings":[
   {{
-   "criterion":"...",
-   "status":"compliant | partial | non-compliant",
-   "evidence":"exact quote from document",
-   "risk_level":"low | medium | high"
+   "criterion_id":"G1.1",
+   "description":"AI Governance Policy",
+   "score":1.0,
+   "evidence":"exact quote from document"
   }}
  ]
 }}
+
+Requirements:
+
+• Evaluate ALL criteria
+• Return exactly one finding per criterion
+• Do NOT include explanations outside JSON
 """
 
     return prompt
