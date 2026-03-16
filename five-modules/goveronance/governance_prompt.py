@@ -60,11 +60,14 @@ The meaning of each score is defined in the scoring_method of the criterion.
 EVIDENCE RULES
 ========================
 
+
 Evidence must:
 
-• be an exact quote from the document  
-• directly support the score  
-• if no evidence exists, return "No evidence found in document"
+• include an exact quote from the document in the "excerpt" field
+• directly support the assigned score
+• reference the document section when possible
+• if no supporting evidence exists, set excerpt to "No evidence found in document"
+• Only provide ONE evidence object per criterion.
 
 
 ========================
@@ -75,16 +78,17 @@ Return ONLY valid JSON.
 
 Structure:
 
-{{
- "findings":[
-  {{
-   "criterion_id":"G1.1",
-   "description":"AI Governance Policy",
-   "score":1.0,
-   "evidence":"exact quote from document"
-  }}
- ]
-}}
+{
+ "criterion_id":"G1.1",
+ "description":"AI Governance Policy",
+ "score":0.75,
+ "evidence":{
+   "evidence_id":"G1.1-E1",
+   "evidence_type":"policy_text",
+   "excerpt":"The organization maintains an AI governance policy approved by the board.",
+   "source_section":"Section 2: Governance Framework"
+ }
+}
 
 Requirements:
 
