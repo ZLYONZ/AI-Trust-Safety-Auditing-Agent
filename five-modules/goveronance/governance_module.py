@@ -3,7 +3,7 @@ import json
 
 from governance_rules import GOVERNANCE_CRITERIA
 from governance_prompt import build_prompt
-from governance_schema import GovernanceFinding, GovernanceResult
+from governance_schema import GovernanceFinding, GovernanceResult, Evidence
 from governance_scoring import (
     calculate_module_score,
     determine_severity,
@@ -57,7 +57,12 @@ class GovernanceModule:
                 criterion_id=item["criterion_id"],
                 description=item["description"],
                 score=float(item["score"]),
-                evidence=item["evidence"],
+                evidence=Evidence(
+                    evidence_id=item["evidence"]["evidence_id"],
+                    evidence_type=item["evidence"]["evidence_type"],
+                    excerpt=item["evidence"]["excerpt"],
+                    source_section=item["evidence"]["source_section"]
+                ),
                 severity=determine_severity(float(item["score"])),
                 weight=next(
                     c["weight"] for c in GOVERNANCE_CRITERIA
