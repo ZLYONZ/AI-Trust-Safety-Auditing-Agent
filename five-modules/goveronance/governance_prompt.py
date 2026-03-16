@@ -84,12 +84,7 @@ Structure:
    "criterion_id":"G1.1",
    "description":"AI Governance Policy",
    "score":1.0,
-   "evidence":{
-  "evidence_id": "G1.1-E1",
-  "evidence_type": "policy_text",
-  "excerpt": "exact quote from document",
-  "source_section": "section title or paragraph"
-}
+   "evidence":"For each finding, include an evidence object containing evidence_id(e.g. G1.1-E1), evidence_type(e.g. policy_text), excerpt (an exact quote from the document), and source_section (the section title or paragraph where the evidence appears)."
   }}
  ]
 }}
