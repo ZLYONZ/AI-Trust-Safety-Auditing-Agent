@@ -84,7 +84,12 @@ Structure:
    "criterion_id":"G1.1",
    "description":"AI Governance Policy",
    "score":1.0,
-   "evidence":"exact quote from document"
+   "evidence":{
+  "evidence_id": "G1.1-E1",
+  "evidence_type": "policy_text",
+  "excerpt": "exact quote from document",
+  "source_section": "section title or paragraph"
+}
   }}
  ]
 }}
