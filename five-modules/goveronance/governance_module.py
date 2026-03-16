@@ -58,7 +58,7 @@ class GovernanceModule:
                 description=item["description"],
                 score=float(item["score"]),
                 evidence=item["evidence"],
-                severity=item.get("severity", "UNKNOWN"),
+                severity=determine_severity(float(item["score"])),
                 weight=next(
                     c["weight"] for c in GOVERNANCE_CRITERIA
                     if c["id"] == item["criterion_id"]
