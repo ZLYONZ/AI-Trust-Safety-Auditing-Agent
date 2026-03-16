@@ -79,15 +79,19 @@ Return ONLY valid JSON.
 Structure:
 
 {
- "criterion_id":"G1.1",
- "description":"AI Governance Policy",
- "score":0.75,
- "evidence":{
-   "evidence_id":"G1.1-E1",
-   "evidence_type":"policy_text",
-   "excerpt":"The organization maintains an AI governance policy approved by the board.",
-   "source_section":"Section 2: Governance Framework"
- }
+ "findings":[
+   {
+     "criterion_id":"G1.1",
+     "description":"AI Governance Policy",
+     "score":1.0,
+     "evidence":{
+        "evidence_id":"G1.1-E1",
+        "evidence_type":"policy_text",
+        "excerpt":"exact quote",
+        "source_section":"section reference"
+     }
+   }
+ ]
 }
 
 Requirements:
