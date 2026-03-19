@@ -2,7 +2,6 @@ from governance_rules import GOVERNANCE_CRITERIA
 
 
 def calculate_module_score(findings):
-
     """
     Calculate weighted governance score
     """
@@ -14,8 +13,8 @@ def calculate_module_score(findings):
 
         # find weight from rules
         weight = next(
-            c["weight"] for c in GOVERNANCE_CRITERIA
-            if c["id"] == finding.criterion_id
+            c["scoring_methodology"]["weight"] for c in GOVERNANCE_CRITERIA
+            if c["criterion_id"] == finding.criterion_id
         )
 
         weighted_sum += finding.score * weight
@@ -28,7 +27,6 @@ def calculate_module_score(findings):
 
 
 def determine_severity(score):
-
     """
     Map numeric score → governance severity
     """
@@ -44,7 +42,6 @@ def determine_severity(score):
 
 
 def determine_risk_level(score):
-
     """
     Convert score → risk level
     """
