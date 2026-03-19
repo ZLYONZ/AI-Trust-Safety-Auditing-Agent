@@ -2,15 +2,25 @@ from pydantic import BaseModel
 from typing import List
 
 
-class Finding(BaseModel):
-    criterion: str
-    status: str
-    evidence: str
-    risk_level: str
+class Evidence(BaseModel):
+    evidence_id: str
+    evidence_type: str
+    excerpt: str
+    source_section: str
+
+
+class FairnessFinding(BaseModel):
+    criterion_id: str
+    description: str
+    score: float
+    evidence: Evidence
+    severity: str
+    weight: float
 
 
 class FairnessResult(BaseModel):
-    module: str
-    score: int
+    module_id: str
+    module_score: float
+    pass_threshold: float
     risk_level: str
-    findings: List[Finding]
+    findings: List[FairnessFinding]
