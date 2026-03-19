@@ -1,336 +1,270 @@
-MODULE_ID = "M1_GOVERNANCE"
-VERSION = "3.1"
-
-PASS_THRESHOLD = 0.75
-
-
-SEVERITY_MAPPING = {
-
-"pass": "PASS",
-
-"minor_gap": "SIGNIFICANT_DEFICIENCY",
-
-"major_gap": "MATERIAL_WEAKNESS"
-
-}
-
-
-
 GOVERNANCE_CRITERIA = [
 
-{
-"id": "G1.1",
-
-"description": "AI Governance Policy",
-
-"check_method":
-
-"Verify existence of a board-approved AI governance policy including scope, roles, risk oversight, ethics, compliance, and privacy governance.",
-
-"pass_criteria":
-
-"Policy document exists, includes required sections, and board approval within 12 months.",
-
-"evidence_requirements": {
-
-"document_type": "Policy document",
-
-"required_sections": [
-
-"scope",
-"roles",
-"RACI",
-"risk",
-"ethics",
-"compliance",
-"privacy"
-
-],
-
-"approval_requirement":
-
-"Board signature within last 12 months"
-
-},
-
-"scoring_method": {
-
-"1.0": "All sections present and ≤6 months old",
-
-"0.75": "All sections present with minor gaps and ≤12 months old",
-
-"0.5": "Most sections present with significant gaps",
-
-"0.0": "Policy missing or incomplete"
-
-},
-
-"weight": 0.20,
-
-"regulations": ["SOX 404","ISO 42001"]
-
-},
-
-
-
-{
-"id": "G1.2",
-
-"description": "Risk Management System",
-
-"check_method":
-
-"Review AI risk register and monitoring process.",
-
-"pass_criteria":
-
-"At least five documented AI risks with quarterly monitoring.",
-
-"evidence_requirements": {
-
-"required_documents":
-
-["AI risk register","risk monitoring reports"],
-
-"minimum_risk_count": 5
-
-},
-
-"scoring_method": {
-
-"1.0": "Risk register complete with quarterly monitoring",
-
-"0.75": "Risk register exists with minor monitoring gaps",
-
-"0.5": "Partial risk documentation",
-
-"0.0": "No AI risk documentation"
-
-},
-
-"weight": 0.18,
-
-"regulations": ["ISO 42001"]
-
-},
-
-
-
-{
-"id": "G1.3",
-
-"description": "SOX 404 Control Documentation",
-
-"check_method":
-
-"Verify internal control documentation mapped to COSO framework.",
-
-"pass_criteria":
-
-"At least 10 AI-related controls mapped to COSO with quarterly testing.",
-
-"evidence_requirements": {
-
-"required_documents":
-
-["control matrix","COSO mapping","testing reports"]
-
-},
-
-"scoring_method": {
-
-"1.0": "Controls documented and tested quarterly",
-
-"0.75": "Controls documented with minor testing gaps",
-
-"0.5": "Partial control documentation",
-
-"0.0": "Controls missing"
-
-},
-
-"weight": 0.18,
-
-"regulations": ["SOX 404"]
-
-},
-
-
-
-{
-"id": "G1.4",
-
-"description": "AI System Inventory",
-
-"check_method":
-
-"Review AI system registry or inventory list.",
-
-"pass_criteria":
-
-"All AI systems documented with quarterly updates.",
-
-"evidence_requirements": {
-
-"required_fields":
-
-["system_name","owner","purpose","risk_level","last_update"]
-
-},
-
-"scoring_method": {
-
-"1.0": "Complete inventory updated within 6 months",
-
-"0.75": "Inventory complete with minor gaps",
-
-"0.5": "Partial system inventory",
-
-"0.0": "Inventory missing"
-
-},
-
-"weight": 0.12,
-
-"regulations": ["ISO 42001"]
-
-},
-
-
-
-{
-"id": "G1.5",
-
-"description": "Training & Competency",
-
-"check_method":
-
-"Verify training records and competency assessments.",
-
-"pass_criteria":
-
-"At least 80% of relevant personnel trained with ≥85% assessment pass rate.",
-
-"evidence_requirements": {
-
-"required_documents":
-
-["training logs","assessment reports"]
-
-},
-
-"scoring_method": {
-
-"1.0": "Training coverage ≥80% and high assessment scores",
-
-"0.75": "Training coverage adequate with minor gaps",
-
-"0.5": "Limited training coverage",
-
-"0.0": "No AI governance training"
-
-},
-
-"weight": 0.12,
-
-"regulations": ["ISO 42001"]
-
-},
-
-
-
-{
-"id": "G1.6",
-
-"description": "ROPA Maintenance (GDPR)",
-
-"check_method":
-
-"Review Record of Processing Activities for AI systems.",
-
-"pass_criteria":
-
-"All processing activities documented according to GDPR Article 30.",
-
-"evidence_requirements": {
-
-"required_fields":
-
-[
-"activity",
-"purposes",
-"data_subjects",
-"data_categories",
-"recipients",
-"transfers",
-"retention",
-"security_measures"
-]
-
-},
-
-"scoring_method": {
-
-"1.0": "All activities documented and ≤6 months old",
-
-"0.75": "All activities documented with minor gaps ≤12 months",
-
-"0.5": "Most activities documented",
-
-"0.0": "ROPA incomplete or missing"
-
-},
-
-"weight": 0.10,
-
-"regulations": ["GDPR"]
-
-},
-
-
-
-{
-"id": "G1.7",
-
-"description": "DPIA Governance (GDPR)",
-
-"check_method":
-
-"Review governance oversight of DPIA processes.",
-
-"pass_criteria":
-
-"DPO consulted for high-risk AI DPIAs and governance committee review.",
-
-"evidence_requirements": {
-
-"required_documents":
-
-[
-"DPIA procedure",
-"DPO consultation logs",
-"governance committee review",
-"remediation tracking"
-]
-
-},
-
-"scoring_method": {
-
-"1.0": "Full DPIA governance process implemented",
-
-"0.75": "DPIA governance mostly implemented",
-
-"0.5": "Partial DPIA governance",
-
-"0.0": "DPIA governance missing"
-
-},
-
-"weight": 0.10,
-
-"regulations": ["GDPR"]
-
-}
+    {
+        "criterion_id": "G1.1",
+
+        "description": "AI Governance Policy (ISO 42001 Alignment).",
+
+        "check_methods": [
+            "Check existence of board-approved AI governance policy",
+            "Verify inclusion of key policy sections (risk, privacy, accountability, compliance)",
+            "Evaluate alignment with ISO 42001",
+            "Check governance roles and responsibilities",
+            "Assess policy review frequency"
+        ],
+
+        "pass_criteria": [
+            "Board-approved AI governance policy exists",
+            "Policy includes at least 7 key sections",
+            "Roles and responsibilities are clearly defined",
+            "Policy aligns with ISO 42001",
+            "Policy reviewed at least annually"
+        ],
+
+        "evidence_requirements": {
+            "policy_document": "AI governance policy document",
+            "board_approval": "Board approval records",
+            "policy_sections": "Policy structure and sections",
+            "role_definitions": "Governance roles documentation",
+            "review_logs": "Policy review records"
+        },
+
+        "scoring_methodology": {
+            "weight": 0.20,
+            "thresholds": {
+                "1.0": "Comprehensive governance policy fully aligned with ISO 42001",
+                "0.75": "Well-defined policy with minor gaps",
+                "0.5": "Partial policy coverage",
+                "0.0": "No formal governance policy"
+            }
+        }
+    },
+
+    {
+        "criterion_id": "G1.2",
+
+        "description": "AI Risk Management System (NIST AI RMF Alignment).",
+
+        "check_methods": [
+            "Identify documented AI risks",
+            "Evaluate risk assessment methodology",
+            "Check risk mitigation controls",
+            "Verify monitoring frequency",
+            "Assess alignment with NIST AI RMF"
+        ],
+
+        "pass_criteria": [
+            "At least 5 AI risks documented",
+            "Risk assessment methodology defined",
+            "Mitigation controls implemented",
+            "Quarterly risk monitoring conducted",
+            "Aligned with NIST AI RMF"
+        ],
+
+        "evidence_requirements": {
+            "risk_register": "AI risk register",
+            "risk_assessment_docs": "Risk assessment methodology",
+            "control_mechanisms": "Risk mitigation controls",
+            "monitoring_reports": "Risk monitoring reports",
+            "framework_mapping": "Mapping to NIST AI RMF"
+        },
+
+        "scoring_methodology": {
+            "weight": 0.18,
+            "thresholds": {
+                "1.0": "Comprehensive risk management aligned with NIST AI RMF",
+                "0.75": "Robust risk framework with minor gaps",
+                "0.5": "Partial risk management",
+                "0.0": "No risk management system"
+            }
+        }
+    },
+
+    {
+        "criterion_id": "G1.3",
+
+        "description": "SOX 404 Control Documentation and Testing.",
+
+        "check_methods": [
+            "Check number of documented controls",
+            "Verify COSO framework mapping",
+            "Evaluate control testing frequency",
+            "Assess documentation completeness"
+        ],
+
+        "pass_criteria": [
+            "At least 10 controls documented",
+            "Controls mapped to COSO framework",
+            "Quarterly testing performed",
+            "Control documentation is complete"
+        ],
+
+        "evidence_requirements": {
+            "control_docs": "SOX control documentation",
+            "coso_mapping": "COSO framework mapping",
+            "testing_reports": "Control testing results",
+            "control_logs": "Control execution logs"
+        },
+
+        "scoring_methodology": {
+            "weight": 0.18,
+            "thresholds": {
+                "1.0": "Comprehensive SOX control framework with regular testing",
+                "0.75": "Strong controls with minor gaps",
+                "0.5": "Partial controls or weak testing",
+                "0.0": "No SOX controls documented"
+            }
+        }
+    },
+
+    {
+        "criterion_id": "G1.4",
+
+        "description": "AI System Inventory and Documentation.",
+
+        "check_methods": [
+            "Verify existence of AI system inventory",
+            "Check completeness of system documentation",
+            "Evaluate update frequency",
+            "Assess coverage of all AI systems"
+        ],
+
+        "pass_criteria": [
+            "All AI systems are documented",
+            "Inventory is complete",
+            "Updated at least quarterly",
+            "System ownership and purpose documented"
+        ],
+
+        "evidence_requirements": {
+            "system_inventory": "AI system inventory list",
+            "system_docs": "System documentation",
+            "update_logs": "Inventory update records",
+            "ownership_records": "System ownership documentation"
+        },
+
+        "scoring_methodology": {
+            "weight": 0.12,
+            "thresholds": {
+                "1.0": "Complete and up-to-date inventory",
+                "0.75": "Mostly complete with minor gaps",
+                "0.5": "Partial inventory",
+                "0.0": "No system inventory"
+            }
+        }
+    },
+
+    {
+        "criterion_id": "G1.5",
+
+        "description": "Training & Competency in AI Governance.",
+
+        "check_methods": [
+            "Check percentage of trained personnel",
+            "Evaluate training content relevance",
+            "Verify assessment pass rates",
+            "Check training frequency"
+        ],
+
+        "pass_criteria": [
+            "At least 80% personnel trained",
+            "Assessment pass rate ≥85%",
+            "Training content covers AI governance",
+            "Training conducted regularly"
+        ],
+
+        "evidence_requirements": {
+            "training_records": "Training completion records",
+            "assessment_results": "Training assessment results",
+            "training_materials": "Training content",
+            "attendance_logs": "Training attendance logs"
+        },
+
+        "scoring_methodology": {
+            "weight": 0.12,
+            "thresholds": {
+                "1.0": "Comprehensive training with high coverage and performance",
+                "0.75": "Strong training program with minor gaps",
+                "0.5": "Limited training coverage",
+                "0.0": "No training program"
+            }
+        }
+    },
+
+    {
+        "criterion_id": "G1.6",
+
+        "description": "ROPA Maintenance (GDPR Article 30).",
+
+        "check_methods": [
+            "Check documentation of processing activities",
+            "Verify inclusion of required GDPR fields",
+            "Check retention and update frequency",
+            "Verify DPO review",
+            "Assess completeness of records"
+        ],
+
+        "pass_criteria": [
+            "All AI processing activities documented",
+            "All required fields present (purpose, categories, recipients, retention, legal basis)",
+            "Updated within 12 months",
+            "DPO reviewed if applicable"
+        ],
+
+        "evidence_requirements": {
+            "ropa_records": "Record of Processing Activities",
+            "data_fields": "GDPR Article 30 required fields",
+            "retention_policy": "Retention documentation",
+            "dpo_review_logs": "DPO review evidence",
+            "update_logs": "ROPA update records"
+        },
+
+        "scoring_methodology": {
+            "weight": 0.10,
+            "thresholds": {
+                "1.0": "Complete ROPA with all fields and recent updates",
+                "0.75": "ROPA complete with minor gaps",
+                "0.5": "Partial ROPA coverage",
+                "0.0": "No ROPA documentation"
+            }
+        }
+    },
+
+    {
+        "criterion_id": "G1.7",
+
+        "description": "High-Risk AI DPIA Governance (GDPR Article 35).",
+
+        "check_methods": [
+            "Check existence of DPIA procedures",
+            "Verify DPO consultation",
+            "Evaluate governance committee involvement",
+            "Assess remediation tracking"
+        ],
+
+        "pass_criteria": [
+            "DPIA procedures documented",
+            "DPO consulted for high-risk AI",
+            "Governance committee reviews DPIAs",
+            "Findings tracked and remediated"
+        ],
+
+        "evidence_requirements": {
+            "dpia_procedures": "DPIA governance procedures",
+            "dpo_logs": "DPO consultation logs",
+            "committee_records": "Governance committee reviews",
+            "remediation_logs": "Remediation tracking records"
+        },
+
+        "scoring_methodology": {
+            "weight": 0.10,
+            "thresholds": {
+                "1.0": "Full DPIA governance with strong oversight and remediation",
+                "0.75": "DPIA process with minor gaps",
+                "0.5": "Partial DPIA governance",
+                "0.0": "No DPIA governance"
+            }
+        }
+    }
 
 ]
