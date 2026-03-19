@@ -1,9 +1,14 @@
 from openai import OpenAI
 import json
 
-from fairness_schema import FairnessResult, Finding
+from fairness_rules import FAIRNESS_CRULES
 from fairness_prompt import build_prompt
-from fairness_rules import FAIRNESS_CRITERIA
+from fairness_schema import FairnessFinding, FairnessResult, Evidence
+from fairness_scoring import (
+    calculate_module_score,
+    determine_severity,
+    determine_risk_level
+)
 
 client = OpenAI()
 
@@ -12,79 +17,78 @@ class FairnessModule:
 
     def run(self, document_text):
 
-        prompt = build_prompt(document_text, FAIRNESS_CRITERIA)
+        # -----------------------------
+        # 1 Build Prompt
+        # -----------------------------
+        prompt = build_prompt(document_text, FAIRNESS_CRULES)
 
+        # -----------------------------
+        # 2 Call LLM
+        # -----------------------------
         response = client.chat.completions.create(
             model="gpt-4.1",
             messages=[
                 {
                     "role": "system",
-                    "content": """
-You are an AI fairness and bias auditor.
-
-Evaluate the document against the fairness criteria.
-
-Return ONLY JSON in this format:
-
-{
- "findings":[
-  {
-   "criterion":"...",
-   "status":"compliant | partial | non-compliant",
-   "evidence":"exact quote from document",
-   "risk_level":"low | medium | high"
-  }
- ]
-}
-"""
+                    "content": "You are an AI fairness and bias auditor. Return ONLY JSON."
                 },
-                {"role": "user", "content": prompt}
+                {
+                    "role": "user",
+                    "content": prompt
+                }
             ]
         )
 
-        analysis = response.choices[0].message.content
+        llm_output = response.choices[0].message.content
 
         print("LLM RAW OUTPUT:")
-        print(analysis)
+        print(llm_output)
 
-        data = json.loads(analysis)
+        # -----------------------------
+        # 3 Parse JSON
+        # -----------------------------
+        data = json.loads(llm_output)
 
         findings = []
 
         for item in data["findings"]:
-            findings.append(
-                Finding(
-                    criterion=item["criterion"],
-                    status=item["status"],
-                    evidence=item["evidence"],
-                    risk_level=item["risk_level"]
+
+            finding = FairnessFinding(
+                criterion_id=item["criterion_id"],
+                description=item["description"],
+                score=float(item["score"]),
+                evidence=Evidence(
+                    evidence_id=item["evidence"]["evidence_id"],
+                    evidence_type=item["evidence"]["evidence_type"],
+                    excerpt=item["evidence"]["excerpt"],
+                    source_section=item["evidence"]["source_section"]
+                ),
+                severity=determine_severity(float(item["score"])),
+                weight=next(
+                    c["scoring_methodology"]["weight"] for c in FAIRNESS_CRULES
+                    if c["criterion_id"] == item["criterion_id"]
                 )
             )
 
-        # -------- calculate score --------
+            findings.append(finding)
 
-        score_map = {
-            "compliant": 100,
-            "partial": 50,
-            "non-compliant": 0
-        }
+        # -----------------------------
+        # 4 Calculate Module Score
+        # -----------------------------
+        module_score = calculate_module_score(findings)
 
-        scores = [score_map[f.status] for f in findings]
-        score = int(sum(scores) / len(scores))
+        severity = determine_severity(module_score)
 
-        # -------- calculate overall risk --------
+        risk_level = determine_risk_level(module_score)
 
-        if score >= 80:
-            risk = "low"
-        elif score >= 50:
-            risk = "medium"
-        else:
-            risk = "high"
-
+        # -----------------------------
+        # 5 Build Result
+        # -----------------------------
         result = FairnessResult(
-            module="fairness_bias",
-            score=score,
-            risk_level=risk,
+            module_id="M2 FAIRNESS",
+            module_score=module_score,
+            pass_threshold=0.75,
+            risk_level=risk_level,
             findings=findings
         )
 
