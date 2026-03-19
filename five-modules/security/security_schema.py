@@ -18,7 +18,7 @@ class SecurityFinding(BaseModel):
     weight: float
 
 
-class FairnessResult(BaseModel):
+class SecurityResult(BaseModel):
     module_id: str
     module_score: float
     pass_threshold: float
