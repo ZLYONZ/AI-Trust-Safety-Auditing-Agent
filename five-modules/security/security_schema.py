@@ -23,4 +23,4 @@ class SecurityResult(BaseModel):
     module_score: float
     pass_threshold: float
     risk_level: str
-    findings: List[Finding]
+    findings: List[SecurityFinding]
