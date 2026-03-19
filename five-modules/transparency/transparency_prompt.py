@@ -1,49 +1,111 @@
 def build_prompt(document_text, criteria):
 
-    criteria_text = "\n".join([f"{i+1}. {c}" for i, c in enumerate(criteria)])
+    criteria_section = ""
+
+    for c in criteria:
+
+        criteria_section += f"""
+Criterion ID: {c["criterion_id"]}
+Description: {c["description"]}
+
+Check Methods:
+{c["check_methods"]}
+
+Pass Criteria:
+{c["pass_criteria"]}
+
+Evidence Requirements:
+{c["evidence_requirements"]}
+
+Scoring Methodology:
+{c["scoring_methodology"]}
+
+Weight: {c["scoring_methodology"]["weight"]}
+"""
 
     prompt = f"""
-You are an AI explainability and transparency auditor.
+You are an AI explainability, transparency, and auditability expert.
 
-Evaluate the organization's AI systems for transparency and explainability
-based on the following criteria:
+Your task is to evaluate the organization's AI system for explainability, transparency, audit trail completeness, and compliance with regulations such as GDPR (Articles 13, 14, 22) and CCPA.
 
-{criteria_text}
+==============================
+EVALUATION CRITERIA
+==============================
 
-Document:
+{criteria_section}
+
+==============================
+DOCUMENT TO ANALYZE
+==============================
+
 {document_text}
 
+==============================
+SCORING RULES
+==============================
 
-For EACH transparency criterion determine:
+SCORING SCALE
 
-criterion
-status (compliant / partial / non-compliant)
-evidence (quote the exact sentence from the document)
-risk_level (low / medium / high)
+Each criterion must be scored using one of the following values:
 
+1.0
+0.75
+0.5
+0.0
 
-IMPORTANT:
+The meaning of each score is defined in the scoring_methodology of the criterion.
 
-1. Evaluate EACH criterion separately.
-2. The evidence MUST be an exact quote from the document.
-3. Do not summarize the evidence.
-4. If no evidence exists, write "No evidence found in document".
-5. Return EXACTLY one finding per criterion.
-6. Return ONLY JSON.
+IMPORTANT SCORING GUIDANCE:
 
+• Assign higher scores when explainability techniques such as SHAP or LIME are implemented and cover most decisions (≥95%)  
+• Assign higher scores when audit trails are complete, immutable, and retained for long periods (e.g., ≥7 years)  
+• Assign higher scores when model documentation (e.g., model cards) and version control systems are well maintained  
+• Assign higher scores when human review mechanisms exist and allow users to contest decisions  
+• Assign higher scores when privacy rights (e.g., CCPA opt-out, right to know) are clearly implemented  
 
-Format:
+• Assign lower scores when:
+  - Explainability is missing or only partially implemented  
+  - Audit trails are incomplete or not retained  
+  - Documentation is weak or outdated  
+  - No human review or appeal process exists  
+  - No transparency regarding automated decision-making  
+
+==============================
+EVIDENCE RULES
+==============================
+
+Evidence must:
+
+• include an exact quote from the document in the "excerpt" field  
+• directly support the assigned score  
+• reference the document section when possible  
+• if no supporting evidence exists, set excerpt to "No evidence found in document"  
+• Only provide ONE evidence object per criterion  
+
+==============================
+OUTPUT FORMAT
+==============================
+
+Return ONLY valid JSON.
+
+Structure:
 
 {{
- "findings":[
-  {{
-   "criterion":"...",
-   "status":"compliant | partial | non-compliant",
-   "evidence":"exact quote from document",
-   "risk_level":"low | medium | high"
-  }}
- ]
+  "findings":[
+    {{
+      "criterion_id":"E4.1",
+      "description":"Explainability & Transparency",
+      "score":1.0,
+      "evidence": "For each finding, include an evidence object containing evidence_id(e.g. E4.1), evidence_type(e.g. policy_text), excerpt (an exact quote from the document), and source_section (the section title or paragraph where the evidence appears)."
+    }}
+  ]
 }}
+
+Requirements:
+
+• Evaluate ALL criteria  
+• Return exactly one finding per criterion  
+• Do NOT include explanations outside JSON  
 """
 
     return prompt
