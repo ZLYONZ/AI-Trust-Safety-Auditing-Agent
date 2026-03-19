@@ -30,7 +30,7 @@ class GovernanceModule:
             messages=[
                 {
                     "role": "system",
-                    "content": "You are an AI governance compliance auditor. Return ONLY JSON."
+                    "content": "You are an AI governance and compliance auditor. Return ONLY JSON."
                 },
                 {
                     "role": "user",
@@ -65,8 +65,8 @@ class GovernanceModule:
                 ),
                 severity=determine_severity(float(item["score"])),
                 weight=next(
-                    c["weight"] for c in GOVERNANCE_CRITERIA
-                    if c["id"] == item["criterion_id"]
+                    c["scoring_methodology"]["weight"] for c in GOVERNANCE_CRITERIA
+                    if c["criterion_id"] == item["criterion_id"]
                 )
             )
 
@@ -85,7 +85,7 @@ class GovernanceModule:
         # 5 Build Result
         # -----------------------------
         result = GovernanceResult(
-            module_id="M1_GOVERNANCE",
+            module_id="M1 GOVERNANCE",
             module_score=module_score,
             pass_threshold=0.75,
             risk_level=risk_level,
