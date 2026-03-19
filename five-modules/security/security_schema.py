@@ -9,7 +9,7 @@ class Evidence(BaseModel):
     source_section: str
 
 
-class Finding(BaseModel):
+class SecurityFinding(BaseModel):
     criterion_id: str
     description: str
     score: float
