@@ -1,10 +1,10 @@
 from openai import OpenAI
 import json
 
-from transparency_rules import TRANSPARENCY_CRITERIA
-from transparency_prompt import build_prompt
-from transparency_schema import TransparencyFinding, TransparencyResult, Evidence
-from transparency_scoring import (
+from governance_rules import GOVERNANCE_CRITERIA
+from governance_prompt import build_prompt
+from governance_schema import GovernanceFinding, GovernanceResult, Evidence
+from governance_scoring import (
     calculate_module_score,
     determine_severity,
     determine_risk_level
@@ -13,24 +13,24 @@ from transparency_scoring import (
 client = OpenAI()
 
 
-class TransparencyModule:
+class GovernanceModule:
 
     def run(self, document_text):
 
         # -----------------------------
         # 1 Build Prompt
         # -----------------------------
-        prompt = build_prompt(document_text, TRANSPARENCY_CRITERIA)
+        prompt = build_prompt(document_text, GOVERNANCE_CRITERIA)
 
         # -----------------------------
         # 2 Call LLM
         # -----------------------------
         response = client.chat.completions.create(
-            model="gpt-4.1",
+            model="gpt-3.5-turbo",
             messages=[
                 {
                     "role": "system",
-                    "content": "You are an AI explainability and transparency auditor. Return ONLY JSON."
+                    "content": "You are an AI governance and compliance auditor. Return ONLY JSON."
                 },
                 {
                     "role": "user",
@@ -53,7 +53,7 @@ class TransparencyModule:
 
         for item in data["findings"]:
 
-            finding = TransparencyFinding(
+            finding = GovernanceFinding(
                 criterion_id=item["criterion_id"],
                 description=item["description"],
                 score=float(item["score"]),
@@ -65,7 +65,7 @@ class TransparencyModule:
                 ),
                 severity=determine_severity(float(item["score"])),
                 weight=next(
-                    c["scoring_methodology"]["weight"] for c in TRANSPARENCY_CRITERIA
+                    c["scoring_methodology"]["weight"] for c in GOVERNANCE_CRITERIA
                     if c["criterion_id"] == item["criterion_id"]
                 )
             )
@@ -84,8 +84,8 @@ class TransparencyModule:
         # -----------------------------
         # 5 Build Result
         # -----------------------------
-        result = TransparencyResult(
-            module_id="M4 EXPLAINABILITY",
+        result = GovernanceResult(
+            module_id="M1 GOVERNANCE",
             module_score=module_score,
             pass_threshold=0.75,
             risk_level=risk_level,

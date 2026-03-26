@@ -1,0 +1,21 @@
+# TrustGuard — Python backend dependencies
+# Install: pip install -r requirements.txt
+
+# ── FastAPI server ─────────────────────────────────────────────────────────
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0    # includes websockets + watchfiles for --reload
+python-multipart>=0.0.9      # required for Form + File uploads in FastAPI
+
+# ── Environment config ─────────────────────────────────────────────────────
+python-dotenv>=1.0.0
+
+# ── LLM client (used by all five modules + orchestrator) ──────────────────
+openai>=1.30.0
+
+# ── File parsing ───────────────────────────────────────────────────────────
+pdfplumber>=0.11.0            # PDF text extraction
+python-docx>=1.1.0            # Word document extraction
+openpyxl>=3.1.0               # Excel extraction
+
+# ── Data validation (already used by module schemas) ──────────────────────
+pydantic>=2.7.0

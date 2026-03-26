@@ -89,7 +89,7 @@ const MainContent = () => {
             <div className="w-16 h-16 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-5">
               <Upload className="w-8 h-8 text-teal-600" />
             </div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Welcome to TrustGuard Nexus</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Welcome to TrustGuard</h2>
             <p className="text-sm text-gray-500 mb-6 leading-relaxed">
               Start a new AI system audit by uploading your governance policies, model artifacts, security documentation, and compliance records.
             </p>

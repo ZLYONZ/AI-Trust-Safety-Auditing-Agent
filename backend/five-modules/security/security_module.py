@@ -1,10 +1,10 @@
 from openai import OpenAI
 import json
 
-from fairness_rules import FAIRNESS_CRULES
-from fairness_prompt import build_prompt
-from fairness_schema import FairnessFinding, FairnessResult, Evidence
-from fairness_scoring import (
+from security_rules import SECURITY_CRITERIA
+from security_prompt import build_prompt
+from security_schema import SecurityFinding, SecurityResult, Evidence
+from security_scoring import (
     calculate_module_score,
     determine_severity,
     determine_risk_level
@@ -13,24 +13,24 @@ from fairness_scoring import (
 client = OpenAI()
 
 
-class FairnessModule:
+class SecurityModule:
 
     def run(self, document_text):
 
-        # -----------------------------
+        # ------------------------------
         # 1 Build Prompt
-        # -----------------------------
-        prompt = build_prompt(document_text, FAIRNESS_CRULES)
+        # ------------------------------
+        prompt = build_prompt(document_text, SECURITY_CRITERIA)
 
-        # -----------------------------
+        # ------------------------------
         # 2 Call LLM
-        # -----------------------------
+        # ------------------------------
         response = client.chat.completions.create(
-            model="gpt-4.1",
+            model="gpt-3.5-turbo",
             messages=[
                 {
                     "role": "system",
-                    "content": "You are an AI fairness and bias auditor. Return ONLY JSON."
+                    "content": "You are an AI security and adversarial robustness auditor. Return ONLY JSON."
                 },
                 {
                     "role": "user",
@@ -44,16 +44,16 @@ class FairnessModule:
         print("LLM RAW OUTPUT:")
         print(llm_output)
 
-        # -----------------------------
+        # ------------------------------
         # 3 Parse JSON
-        # -----------------------------
+        # ------------------------------
         data = json.loads(llm_output)
 
         findings = []
 
         for item in data["findings"]:
 
-            finding = FairnessFinding(
+            finding = SecurityFinding(
                 criterion_id=item["criterion_id"],
                 description=item["description"],
                 score=float(item["score"]),
@@ -65,27 +65,27 @@ class FairnessModule:
                 ),
                 severity=determine_severity(float(item["score"])),
                 weight=next(
-                    c["scoring_methodology"]["weight"] for c in FAIRNESS_CRULES
+                    c["scoring_methodology"]["weight"] for c in SECURITY_CRITERIA
                     if c["criterion_id"] == item["criterion_id"]
                 )
             )
 
             findings.append(finding)
 
-        # -----------------------------
+        # ------------------------------
         # 4 Calculate Module Score
-        # -----------------------------
+        # ------------------------------
         module_score = calculate_module_score(findings)
 
         severity = determine_severity(module_score)
 
         risk_level = determine_risk_level(module_score)
 
-        # -----------------------------
+        # ------------------------------
         # 5 Build Result
-        # -----------------------------
-        result = FairnessResult(
-            module_id="M2 FAIRNESS",
+        # ------------------------------
+        result = SecurityResult(
+            module_id="M3 SECURITY",
             module_score=module_score,
             pass_threshold=0.75,
             risk_level=risk_level,

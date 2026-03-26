@@ -1,10 +1,10 @@
 from openai import OpenAI
 import json
 
-from performance_rules import PERFORMANCE_CRITERIA
-from performance_prompt import build_prompt
-from performance_schema import PerformanceFinding, PerformanceResult, Evidence
-from performance_scoring import (
+from transparency_rules import TRANSPARENCY_CRITERIA
+from transparency_prompt import build_prompt
+from transparency_schema import TransparencyFinding, TransparencyResult, Evidence
+from transparency_scoring import (
     calculate_module_score,
     determine_severity,
     determine_risk_level
@@ -13,24 +13,24 @@ from performance_scoring import (
 client = OpenAI()
 
 
-class PerformanceModule:
+class TransparencyModule:
 
     def run(self, document_text):
 
         # -----------------------------
         # 1 Build Prompt
         # -----------------------------
-        prompt = build_prompt(document_text, PERFORMANCE_CRITERIA)
+        prompt = build_prompt(document_text, TRANSPARENCY_CRITERIA)
 
         # -----------------------------
         # 2 Call LLM
         # -----------------------------
         response = client.chat.completions.create(
-            model="gpt-4.1",
+            model="gpt-3.5-turbo",
             messages=[
                 {
                     "role": "system",
-                    "content": "You are an AI model performance and monitoring auditor. Return ONLY JSON."
+                    "content": "You are an AI explainability and transparency auditor. Return ONLY JSON."
                 },
                 {
                     "role": "user",
@@ -53,7 +53,7 @@ class PerformanceModule:
 
         for item in data["findings"]:
 
-            finding = PerformanceFinding(
+            finding = TransparencyFinding(
                 criterion_id=item["criterion_id"],
                 description=item["description"],
                 score=float(item["score"]),
@@ -65,7 +65,7 @@ class PerformanceModule:
                 ),
                 severity=determine_severity(float(item["score"])),
                 weight=next(
-                    c["scoring_methodology"]["weight"] for c in PERFORMANCE_CRITERIA
+                    c["scoring_methodology"]["weight"] for c in TRANSPARENCY_CRITERIA
                     if c["criterion_id"] == item["criterion_id"]
                 )
             )
@@ -84,8 +84,8 @@ class PerformanceModule:
         # -----------------------------
         # 5 Build Result
         # -----------------------------
-        result = PerformanceResult(
-            module_id="M5 PERFORMANCE",
+        result = TransparencyResult(
+            module_id="M4 EXPLAINABILITY",
             module_score=module_score,
             pass_threshold=0.75,
             risk_level=risk_level,

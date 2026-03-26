@@ -10,7 +10,7 @@ const Header = () => {
             <Shield className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-base font-semibold leading-tight">Trust Guard</h1>
+            <h1 className="text-base font-semibold leading-tight">TrustGuard</h1>
             <p className="text-xs text-gray-400 leading-tight">AI Trust & Safety Auditing Platform</p>
           </div>
         </div>
