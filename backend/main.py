@@ -53,18 +53,16 @@ for sub in ("governance", "fairness", "security", "transparency", "performance")
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
-# ── Orchestrator import (path must be set up first) ─────────────────────────
-# Pylance reports unresolved import because the path is dynamic — safe to ignore.
-try:
-    from orchestrator import AuditOrchestrator  # type: ignore[import]
-    _ORCHESTRATOR_AVAILABLE = True
-except ImportError:
-    _ORCHESTRATOR_AVAILABLE = False
-    AuditOrchestrator = None  # type: ignore[assignment,misc]
+# ── Orchestrator is imported lazily inside _run_pipeline ─────────────────────
+# We cannot import it at startup because the five-module paths are dynamic.
+# _ORCHESTRATOR_AVAILABLE is always True here; the real check is in _run_pipeline.
+_ORCHESTRATOR_AVAILABLE = True
+AuditOrchestrator = None  # placeholder — replaced by lazy import at runtime
 
 # ── Internal imports ────────────────────────────────────────────────────────
 import database as db
 from file_parser import extract_text_from_files
+
 
 # ── Lifespan ────────────────────────────────────────────────────────────────
 
@@ -72,6 +70,7 @@ from file_parser import extract_text_from_files
 async def lifespan(app: FastAPI):
     db.init_db()
     yield
+
 
 # ── App setup ────────────────────────────────────────────────────────────────
 
@@ -93,6 +92,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # ── Pydantic response models ─────────────────────────────────────────────────
 
 class AuditResponse(BaseModel):
@@ -103,13 +103,16 @@ class AuditResponse(BaseModel):
     created_at: str
     updated_at: str
 
+
 class ExecuteResponse(BaseModel):
     audit_id: str
     status: str
     message: str
 
+
 class DeleteResponse(BaseModel):
     deleted: bool
+
 
 # ── WebSocket connection manager ─────────────────────────────────────────────
 
@@ -139,10 +142,13 @@ class ConnectionManager:
         for ws in dead:
             self.disconnect(audit_id, ws)
 
+
 manager = ConnectionManager()
+
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
 
 # ── REST endpoints ────────────────────────────────────────────────────────────
 
@@ -156,7 +162,7 @@ async def create_audit(
     Files are stored in memory for now; add disk/S3 persistence as needed.
     """
     file_meta = [
-        {"name": f.filename, "size": f.size or 0}
+        {"name": f.filename or "unnamed", "size": f.size or 0}
         for f in files
     ]
     audit = db.create_audit(name=name, files=file_meta)
@@ -168,6 +174,7 @@ async def create_audit(
     ]
 
     return audit
+
 
 @app.post("/api/audits/{audit_id}/execute", response_model=ExecuteResponse)
 async def execute_audit(audit_id: str):
@@ -191,6 +198,7 @@ async def execute_audit(audit_id: str):
         message="Audit pipeline started. Connect to /ws/audits/{audit_id} for live progress.",
     )
 
+
 @app.get("/api/audits/{audit_id}", response_model=AuditResponse)
 def get_audit_status(audit_id: str):
     """Poll current status of an audit."""
@@ -204,18 +212,19 @@ def get_audit_results(audit_id: str):
     Raises 202 while still running, 404 if not found.
     """
     audit = _require_audit(audit_id)
-    if audit["status"] in ("pending", "running"):
-        raise HTTPException(202, "Audit is still running. Poll /api/audits/{id} for status.")
-
     results = db.get_audit_results(audit_id)
     if results is None:
+        if audit["status"] in ("pending", "running"):
+            raise HTTPException(404, "Results not ready yet.")
         raise HTTPException(404, f"No results found for audit '{audit_id}'.")
     return results
+
 
 @app.get("/api/audits", response_model=list[AuditResponse])
 def list_audits():
     """List all audit sessions, most recent first."""
     return db.list_audits()
+
 
 @app.delete("/api/audits/{audit_id}", response_model=DeleteResponse)
 def delete_audit(audit_id: str):
@@ -226,6 +235,7 @@ def delete_audit(audit_id: str):
     _file_store.pop(audit_id, None)
     return DeleteResponse(deleted=True)
 
+
 # ── WebSocket endpoint ────────────────────────────────────────────────────────
 
 @app.websocket("/ws/audits/{audit_id}")
@@ -233,22 +243,36 @@ async def ws_audit(audit_id: str, websocket: WebSocket):
     """
     Real-time progress stream for an audit.
 
-    Frame types: progress | module_complete | peer_review | arbitration |
-                 audit_complete | error
-    All frames include audit_id and timestamp.
+    Strategy: do not block waiting for client messages at all.
+    Just send a ping every 20s and stay open until the audit finishes
+    or the client disconnects. The pipeline pushes frames via manager.send().
     """
     await manager.connect(audit_id, websocket)
     try:
-        # Keep connection alive until client disconnects
         while True:
-            await websocket.receive_text()
+            await asyncio.sleep(20)
+            # Check if client is still connected by sending a ping
+            try:
+                await websocket.send_json({"type": "ping", "audit_id": audit_id})
+            except Exception:
+                break  # client gone
+            # If audit is done, stop looping
+            audit = db.get_audit(audit_id)
+            if audit and audit["status"] in ("completed", "failed", "escalate"):
+                break
     except WebSocketDisconnect:
+        pass
+    except Exception:
+        pass
+    finally:
         manager.disconnect(audit_id, websocket)
+
 
 # ── In-memory file store (replace with disk/S3 in production) ────────────────
 
 # { audit_id: [(bytes, filename), ...] }
 _file_store: dict[str, list[tuple[bytes, str]]] = {}
+
 
 # ── Pipeline background task ──────────────────────────────────────────────────
 
@@ -258,6 +282,7 @@ async def _run_pipeline(audit_id: str) -> None:
     Streams WebSocket frames at each stage.
     All heavy work is run in a thread pool so the event loop stays free.
     """
+
     async def emit(payload: dict) -> None:
         payload["audit_id"] = audit_id
         payload["timestamp"] = _now()
@@ -276,14 +301,17 @@ async def _run_pipeline(audit_id: str) -> None:
             None, extract_text_from_files, files
         )
 
-        # ── 2. Import orchestrator (lazy — avoids OpenAI client at startup) ─
-        if not _ORCHESTRATOR_AVAILABLE or AuditOrchestrator is None:
+        # ── 2. Lazy-import and instantiate orchestrator ─────────────────────
+        # Import here (not at startup) so all sys.path additions are in effect.
+        try:
+            from orchestrator import AuditOrchestrator as _OC  # type: ignore[import]
+        except Exception as import_err:
             raise RuntimeError(
-                "AuditOrchestrator could not be imported. "
-                "Check that orchestrator.py is in the backend/ directory "
-                "and all five-modules subdirectories are present."
-            )
-        orchestrator = AuditOrchestrator()
+                f"Failed to import AuditOrchestrator: {import_err}. "
+                "Check that orchestrator.py is in backend/ and all "
+                "five-modules subdirectories are present and correct."
+            ) from import_err
+        orchestrator = _OC()
 
         # ── 3. Run each module, streaming results ─────────────────────────
         MODULE_ORDER = [
@@ -372,8 +400,7 @@ async def _run_pipeline(audit_id: str) -> None:
 
         terminal_status = (
             "escalate" if summary["decision"] == "ESCALATE"
-            else "completed" if summary["decision"] == "PASS"
-            else "failed"
+            else "completed"  # PASS or FAIL both mean audit ran successfully
         )
         db.update_audit_status(audit_id, terminal_status)
 
@@ -386,13 +413,18 @@ async def _run_pipeline(audit_id: str) -> None:
         })
 
     except Exception as exc:
+        import traceback
         db.update_audit_status(audit_id, "failed")
+        # Send the actual exception type + message so the frontend can display it
+        error_text = f"{type(exc).__name__}: {exc}"
         await emit({
             "type": "error",
             "stage": "error",
-            "message": str(exc),
+            "message": error_text,
         })
-        raise
+        # Log full traceback to server terminal
+        traceback.print_exc()
+
 
 # ── Orchestrator helper functions ─────────────────────────────────────────────
 
@@ -412,6 +444,7 @@ def _run_peer_review(
             return [r.model_dump() for r in reviews]
         return reviews or []
     return []
+
 
 def _run_arbitration(
     orchestrator: Any,
@@ -462,6 +495,7 @@ def _run_arbitration(
 
     return divergence, result
 
+
 def _summarise_peer_reviews(reviews: list[dict]) -> str:
     if not reviews:
         return "No peer reviews available."
@@ -470,6 +504,7 @@ def _summarise_peer_reviews(reviews: list[dict]) -> str:
     for r in flagged[:5]:
         lines.append(f"  - {r.get('reviewer_module')} flagged {r.get('reviewed_module')}: {r.get('comment', '')[:120]}")
     return "\n".join(lines)
+
 
 def _extract_key_findings(module_results: dict) -> list[str]:
     """Pull the worst-scoring criterion from each module as key findings."""
@@ -482,6 +517,7 @@ def _extract_key_findings(module_results: dict) -> list[str]:
             )
     return findings
 
+
 # ── Internal helpers ─────────────────────────────────────────────────────────
 
 def _require_audit(audit_id: str) -> dict:
@@ -490,6 +526,7 @@ def _require_audit(audit_id: str) -> dict:
     if audit is None:
         raise HTTPException(404, f"Audit '{audit_id}' not found.")
     return audit
+
 
 # ── Dev entry point ──────────────────────────────────────────────────────────
 

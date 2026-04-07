@@ -9,14 +9,15 @@ const Layout = () => {
   const { leftSidebarOpen, rightPanelOpen, toggleLeftSidebar, toggleRightPanel } = useUIStore();
 
   return (
-    <div className="h-screen flex flex-col bg-gray-100">
+    <div className="h-screen flex flex-col bg-white">
       <Header />
 
-      <div className="flex-1 flex overflow-hidden relative">
-        {/* Left Sidebar */}
+      <div className="flex-1 flex overflow-hidden bg-white">
+
+        {/* ── Left Sidebar ─────────────────────────────────────────────── */}
         <aside
           className={`
-            bg-white border-r border-gray-200 transition-all duration-300 flex-shrink-0
+            bg-white border-r border-gray-200 transition-all duration-300 flex-shrink-0 relative
             ${leftSidebarOpen ? 'w-60' : 'w-0'}
             overflow-hidden
           `}
@@ -24,25 +25,39 @@ const Layout = () => {
           <LeftSidebar />
         </aside>
 
-        {/* Toggle Left Button */}
-        <button
-          onClick={toggleLeftSidebar}
-          className="absolute top-4 z-20 bg-white border border-gray-200 rounded-r-md p-1 hover:bg-gray-50 shadow-sm transition-all"
-          style={{ left: leftSidebarOpen ? '240px' : '0px' }}
-          aria-label={leftSidebarOpen ? 'Close sidebar' : 'Open sidebar'}
-        >
-          {leftSidebarOpen
-            ? <ChevronLeft className="w-3.5 h-3.5 text-gray-500" />
-            : <ChevronRight className="w-3.5 h-3.5 text-gray-500" />
-          }
-        </button>
+        {/* Left toggle — floats just outside the sidebar edge */}
+        <div className="relative flex-shrink-0 flex items-start pt-3">
+          <button
+            onClick={toggleLeftSidebar}
+            className="bg-white border border-gray-200 rounded-r-md p-1.5 hover:bg-gray-50 shadow-sm z-20"
+            aria-label={leftSidebarOpen ? 'Close sidebar' : 'Open sidebar'}
+          >
+            {leftSidebarOpen
+              ? <ChevronLeft className="w-3.5 h-3.5 text-gray-400" />
+              : <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
+            }
+          </button>
+        </div>
 
-        {/* Main Chat */}
+        {/* ── Main Chat ─────────────────────────────────────────────────── */}
         <main className="flex-1 overflow-hidden min-w-0">
           <MainContent />
         </main>
 
-        {/* Right Panel */}
+        {/* Right toggle — floats just inside the right edge when panel is closed */}
+        {!rightPanelOpen && (
+          <div className="relative flex-shrink-0 flex items-start pt-3">
+            <button
+              onClick={toggleRightPanel}
+              className="bg-white border border-gray-200 rounded-l-md p-1.5 hover:bg-gray-50 shadow-sm z-20"
+              aria-label="Open report panel"
+            >
+              <ChevronLeft className="w-3.5 h-3.5 text-gray-400" />
+            </button>
+          </div>
+        )}
+
+        {/* ── Right Panel ───────────────────────────────────────────────── */}
         <aside
           className={`
             bg-white border-l border-gray-200 transition-all duration-300 flex-shrink-0
@@ -53,16 +68,6 @@ const Layout = () => {
           <RightPanel />
         </aside>
 
-        {/* Toggle Right Button */}
-        {!rightPanelOpen && (
-          <button
-            onClick={toggleRightPanel}
-            className="absolute top-4 right-0 z-20 bg-white border border-gray-200 rounded-l-md p-1 hover:bg-gray-50 shadow-sm"
-            aria-label="Open report panel"
-          >
-            <ChevronLeft className="w-3.5 h-3.5 text-gray-500" />
-          </button>
-        )}
       </div>
     </div>
   );

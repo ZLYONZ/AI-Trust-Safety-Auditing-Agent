@@ -1,42 +1,28 @@
-import { Upload, Send, Loader2, AlertTriangle } from 'lucide-react';
-import { useUIStore, MOCK_AUDITS, TTMT_AUDIT_RESULT } from '../../store/uiStore';
+import { Upload, Send, Loader2, AlertTriangle, Trash2 } from 'lucide-react';
+import { useUIStore, apiResponseToAudit, type ChatMessage } from '../../store/uiStore';
 import { useState, useRef, useEffect } from 'react';
 import { auditApi } from '../../services/auditApi';
+import { AuditWebSocket } from '../../services/auditWebSocket';
 import FileUploadModal from './FileUploadModal';
 
-// ─── Chat messages for the TTMT audit run ─────────────────────────────────
-
-const TTMT_MESSAGES = [
-  { type: 'system', content: 'Audit session started. TTMT AI system documentation received. Initialising 5-module evaluation pipeline.', timestamp: '10:30 AM' },
-  { type: 'user', content: 'Uploaded: TTMT_governance_policy.pdf, AI_fairness_compliance.pdf, security_architecture.pdf, model_explainability.pdf, performance_monitoring.pdf', timestamp: '10:31 AM' },
-  { type: 'agent', content: 'Files received. Running Module 1 — Governance & Compliance…', timestamp: '10:32 AM' },
-  { type: 'system', content: '⚠ Governance module completed — Score: 0.655 · SIGNIFICANT DEFICIENCY', timestamp: '10:33 AM' },
-  { type: 'agent', content: 'Governance analysis complete. Key findings: G1.3 (SOX 404 controls) scored 0.5 due to inconsistent testing frequency and non-standardized documentation. G1.6 and G1.7 both at 0.5 — GDPR Article 30 ROPA and Article 35 DPIA governance gaps identified. DPO consultation processes not fully standardized.', timestamp: '10:33 AM' },
-  { type: 'system', content: '✓ Fairness module completed — Score: 0.862 · PASS', timestamp: '10:35 AM' },
-  { type: 'agent', content: 'Fairness assessment strong. F2.1 (special category data) and F2.3 (bias mitigation) both scored 1.0 — strict prohibition on protected attributes and systematic reweighting/resampling in place. Gap found in F2.4 at 0.5: automated decision opt-out rights under GDPR Art. 22 and CCPA only partially fulfilled.', timestamp: '10:35 AM' },
-  { type: 'system', content: '✓ Security module completed — Score: 0.855 · PASS', timestamp: '10:37 AM' },
-  { type: 'agent', content: 'Security posture excellent. S3.1 (AES-256/TLS 1.3), S3.2 (adversarial robustness with red-teaming), and S3.3 (RBAC+ABAC+MFA) all scored 1.0. S3.4 flagged at 0.5 — Privacy by Design per GDPR Art. 25 is applied to data pipelines but lacks system-level architectural documentation.', timestamp: '10:37 AM' },
-  { type: 'system', content: '✓ Explainability module completed — Score: 0.925 · PASS', timestamp: '10:39 AM' },
-  { type: 'agent', content: 'Transparency and explainability excellent. E4.1 (SHAP explanations at 98%+ coverage), E4.2 (WORM immutable audit trail, 7-year retention), and E4.3 (comprehensive model cards with Git versioning) all scored 1.0. E4.4 and E4.5 at 0.75 — right-to-contest and CCPA explanation rights could be more explicitly documented.', timestamp: '10:39 AM' },
-  { type: 'system', content: '✓ Performance module completed — Score: 0.750 · PASS', timestamp: '10:40 AM' },
-  { type: 'agent', content: 'Performance monitoring in place with >94% model accuracy. All four criteria (A5.1–A5.4) scored 0.75 — drift detection alerts are configured but automated retraining is not universally triggered; dashboard updates are not always real-time.', timestamp: '10:40 AM' },
-  { type: 'decision', content: 'Final Decision: ESCALATE\nComposite score: 85.5 / 100 · Confidence: 46% · Divergence: CRITICAL\nCritical divergence across modules → mandatory human review required before certification.', timestamp: '10:41 AM' },
-  { type: 'user', content: 'What are the highest-priority remediation actions?', timestamp: '10:42 AM' },
-  { type: 'agent', content: 'Top 3 remediation priorities:\n1. Standardize SOX 404 control documentation and enforce quarterly testing cadence (G1.3 — Material Weakness risk)\n2. Assign DPO ownership of ROPA and establish mandatory DPIA review gate for high-risk AI (G1.6, G1.7 — GDPR Art. 30 & 35)\n3. Implement Privacy by Design system architecture documentation per GDPR Art. 25 (S3.4)', timestamp: '10:42 AM' },
-];
-
-// ─── Component ────────────────────────────────────────────────────────────
-
 const MainContent = () => {
-  const { currentAuditId, setCurrentAudit } = useUIStore();
+  const {
+    currentAuditId, audits, liveMessages, auditStatus,
+    addAudit, updateAuditStatus, setAuditResults,
+    addChatMessage, setCurrentAudit, removeAudit,
+  } = useUIStore();
+
   const [message, setMessage] = useState('');
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [extraMessages, setExtraMessages] = useState<Array<{ type: string; content: string; timestamp: string }>>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const wsRef = useRef<AuditWebSocket | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const currentAudit = MOCK_AUDITS.find(a => a.id === currentAuditId);
+  const currentAudit = audits.find((a) => a.id === currentAuditId);
+  const messages: ChatMessage[] = currentAuditId ? (liveMessages[currentAuditId] ?? []) : [];
+  const status = currentAuditId ? (auditStatus[currentAuditId] ?? currentAudit?.status) : null;
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -47,113 +33,231 @@ const MainContent = () => {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [currentAuditId, extraMessages]);
+  }, [messages.length]);
 
-  const handleSendMessage = () => {
-    if (!message.trim()) return;
-    const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    setExtraMessages(prev => [...prev, { type: 'user', content: message, timestamp: now }]);
-    setMessage('');
-    if (textareaRef.current) textareaRef.current.style.height = 'auto';
+  // Clean up WS + poll when switching audits
+  useEffect(() => {
+    return () => {
+      wsRef.current?.disconnect();
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, [currentAuditId]);
+
+  // Auto-poll when selecting a running audit after page refresh
+  useEffect(() => {
+    if (!currentAuditId) return;
+    const isRealAudit = /^[0-9a-f]{8}-[0-9a-f]{4}-/.test(currentAuditId);
+    if (!isRealAudit) return;
+
+    // Use stable status value computed at render time
+    const currentStatus = auditStatus[currentAuditId] ?? currentAudit?.status;
+    if (currentStatus !== 'running' && currentStatus !== 'pending') return;
+    const msgs = liveMessages[currentAuditId] ?? [];
+    if (msgs.length > 0) return;
+
+    push(currentAuditId, { type: 'system', content: 'Reconnecting to running audit…' });
+    startPolling(currentAuditId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentAuditId, status]);
+
+  const ts = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const push = (id: string, msg: Omit<ChatMessage, 'timestamp'>) =>
+    addChatMessage(id, { ...msg, timestamp: ts() });
+
+  // ── Core polling — primary results path (WebSocket is bonus) ────────────────
+  const startPolling = (id: string) => {
+    if (pollRef.current) clearInterval(pollRef.current);
+
+    // Show progress messages at fixed intervals while pipeline runs
+    const STAGES = [
+      { delay: 4000, msg: 'Running Governance & Compliance module…' },
+      { delay: 18000, msg: 'Running Fairness & Bias module…' },
+      { delay: 32000, msg: 'Running Security & Privacy module…' },
+      { delay: 46000, msg: 'Running Explainability & Audit Trail module…' },
+      { delay: 60000, msg: 'Running Accuracy & Performance module…' },
+      { delay: 74000, msg: 'Running Council of Experts peer review…' },
+      { delay: 88000, msg: 'Running arbitrator synthesis…' },
+    ];
+    const stageTimers: ReturnType<typeof setTimeout>[] = [];
+    STAGES.forEach(({ delay, msg }) => {
+      stageTimers.push(setTimeout(() => push(id, { type: 'system', content: msg }), delay));
+    });
+
+    const clearStages = () => stageTimers.forEach(clearTimeout);
+
+    const fetchResults = async (attempt = 1): Promise<void> => {
+      try {
+        const results = await auditApi.getAuditResults(id);
+        setAuditResults(id, results);
+        const s = results.overall_summary;
+        push(id, {
+          type: 'decision',
+          content: `Final Decision: ${s.decision}\nComposite score: ${s.final_score} / 100 · Confidence: ${Math.round(s.confidence * 100)}% · Divergence: ${s.divergence}\n${s.notes}`,
+        });
+      } catch (e) {
+        if (attempt < 10) {
+          setTimeout(() => fetchResults(attempt + 1), 2000);
+        } else {
+          console.error('Failed to load results after retries:', e);
+          push(id, { type: 'system', content: 'Audit complete — see Modules tab for results.' });
+        }
+      }
+    };
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await auditApi.getAuditStatus(id);
+        if (['completed', 'escalate', 'failed'].includes(res.status)) {
+          clearInterval(interval);
+          clearStages();
+          pollRef.current = null;
+          const term = res.status === 'escalate' ? 'escalate'
+            : res.status === 'completed' ? 'completed' : 'failed';
+          updateAuditStatus(id, term as any);
+          fetchResults();
+        }
+      } catch { }
+    }, 3000);
+
+    pollRef.current = interval;
+    // Safety: stop after 15 minutes
+    setTimeout(() => {
+      if (pollRef.current === interval) { clearInterval(interval); clearStages(); }
+    }, 900000);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  };
-
+  // ── File upload + pipeline ─────────────────────────────────────────────────
   const handleFileUpload = async (files: File[]) => {
     setUploading(true);
+    setShowUploadModal(false);
+    let auditId = '';
+
     try {
-      const audit = await auditApi.createAudit({
-        name: `Audit - ${new Date().toISOString()}`,
+      const created = await auditApi.createAudit({
+        name: `Audit - ${new Date().toLocaleDateString()}`,
         files,
       });
-      setCurrentAudit(audit.audit_id);
-      await auditApi.executeAudit(audit.audit_id);
-    } catch (error) {
-      console.error('Audit failed:', error);
+      auditId = created.audit_id;
+
+      addAudit(apiResponseToAudit(created));
+      setCurrentAudit(auditId);
+      updateAuditStatus(auditId, 'running');
+
+      push(auditId, {
+        type: 'system',
+        content: `Audit started. ${files.length} file${files.length > 1 ? 's' : ''} uploaded: ${files.map((f) => f.name).join(', ')}`,
+      });
+
+      // Start polling immediately — this is the reliable path
+      startPolling(auditId);
+
+      // WebSocket is a bonus: shows live module messages if connection stays open
+      const ws = new AuditWebSocket();
+      wsRef.current = ws;
+      ws.connect(auditId, {
+        onOpen: () =>
+          push(auditId, { type: 'agent', content: 'Live stream connected. Running 5-module evaluation…' }),
+
+        onProgress: (msg) =>
+          push(auditId, { type: 'system', content: msg.message }),
+
+        onModuleComplete: (msg) => {
+          const score = msg.result.module_score;
+          const passed = score >= (msg.result.pass_threshold ?? 0.75);
+          push(auditId, {
+            type: 'system',
+            content: `${passed ? '✓' : '⚠'} ${msg.module_name} complete — Score: ${score.toFixed(3)} · ${passed ? 'PASS' : 'FAIL'}`,
+          });
+        },
+
+        onPeerReview: (msg) => {
+          if (msg.flag)
+            push(auditId, { type: 'agent', content: `Peer review flag: ${msg.reviewer} → ${msg.reviewed}: ${msg.comment}` });
+        },
+
+        onArbitration: (msg) => {
+          const s = msg.summary;
+          push(auditId, {
+            type: 'decision',
+            content: `Final Decision: ${s.decision}\nComposite score: ${s.final_score} / 100 · Confidence: ${Math.round(s.confidence * 100)}% · Divergence: ${s.divergence}\n${s.notes}`,
+          });
+        },
+
+        onAuditComplete: async (msg) => {
+          if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+          const term = msg.decision === 'ESCALATE' ? 'escalate' : msg.decision === 'PASS' ? 'completed' : 'failed';
+          updateAuditStatus(auditId, term);
+          try {
+            const results = await auditApi.getAuditResults(auditId);
+            setAuditResults(auditId, results);
+          } catch { }
+          ws.disconnect();
+        },
+
+        onError: () => { }, // polling handles it
+      });
+
+      await auditApi.executeAudit(auditId);
+
+    } catch (err) {
+      const text = err instanceof Error ? err.message : 'Upload failed';
+      if (auditId) { push(auditId, { type: 'system', content: `Error: ${text}` }); updateAuditStatus(auditId, 'failed'); }
+      console.error(err);
     } finally {
       setUploading(false);
     }
   };
 
-  // ── Empty state ──────────────────────────────────────────────────────────
-  if (!currentAuditId) {
-    return (
-      <>
-        <div className="h-full flex items-center justify-center bg-gray-50">
-          <div className="text-center max-w-md px-6">
-            <div className="w-16 h-16 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-5">
-              <Upload className="w-8 h-8 text-teal-600" />
-            </div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Welcome to TrustGuard</h2>
-            <p className="text-sm text-gray-500 mb-6 leading-relaxed">
-              Start a new AI system audit by uploading your governance policies, model artifacts, security documentation, and compliance records.
-            </p>
-            <button
-              onClick={() => setShowUploadModal(true)}
-              className="bg-teal-600 hover:bg-teal-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors inline-flex items-center gap-2"
-            >
-              <Upload className="w-4 h-4" />
-              Upload Files to Start Audit
-            </button>
-          </div>
+  const handleDelete = async () => {
+    if (!currentAuditId) return;
+    try {
+      await auditApi.deleteAudit(currentAuditId);
+    } catch { }
+    removeAudit(currentAuditId);
+    setCurrentAudit(null);
+  };
+
+  const handleSendMessage = () => {
+    if (!message.trim() || !currentAuditId) return;
+    push(currentAuditId, { type: 'user', content: message });
+    setMessage('');
+    if (textareaRef.current) textareaRef.current.style.height = 'auto';
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); }
+  };
+
+  const renderMessage = (msg: ChatMessage, index: number) => {
+    if (msg.type === 'user') return (
+      <div key={index} className="flex justify-end">
+        <div className="max-w-[72%] bg-teal-600 text-white rounded-2xl rounded-tr-sm px-4 py-2.5">
+          <p className="text-sm leading-relaxed">{msg.content}</p>
+          <p className="text-xs mt-1 text-teal-200">{msg.timestamp}</p>
         </div>
-        {showUploadModal && (
-          <FileUploadModal onClose={() => setShowUploadModal(false)} onUpload={handleFileUpload} />
-        )}
-      </>
+      </div>
     );
-  }
-
-  // ── Determine which messages to show ────────────────────────────────────
-  const messages = currentAuditId === 'audit-ttmt-2026-001' ? TTMT_MESSAGES : [];
-  const isEscalate = currentAudit?.status === 'escalate';
-
-  // ── Message bubble renderer ──────────────────────────────────────────────
-  const renderMessage = (msg: typeof TTMT_MESSAGES[0], index: number) => {
-    if (msg.type === 'user') {
-      return (
-        <div key={index} className="flex justify-end">
-          <div className="max-w-[72%] bg-teal-600 text-white rounded-2xl rounded-tr-sm px-4 py-2.5">
-            <p className="text-sm leading-relaxed">{msg.content}</p>
-            <p className="text-xs mt-1 text-teal-200">{msg.timestamp}</p>
-          </div>
+    if (msg.type === 'system') return (
+      <div key={index} className="flex justify-center">
+        <div className="bg-blue-50 border border-blue-200 text-blue-800 rounded-lg px-4 py-2 text-xs font-medium max-w-[85%] text-center">
+          {msg.content}
         </div>
-      );
-    }
-
-    if (msg.type === 'system') {
-      return (
-        <div key={index} className="flex justify-center">
-          <div className="bg-blue-50 border border-blue-200 text-blue-800 rounded-lg px-4 py-2 text-xs font-medium max-w-[80%] text-center">
-            {msg.content}
+      </div>
+    );
+    if (msg.type === 'decision') return (
+      <div key={index} className="flex justify-start">
+        <div className="max-w-[82%] bg-yellow-50 border border-yellow-300 rounded-2xl rounded-tl-sm px-4 py-3">
+          <div className="flex items-center gap-2 mb-1">
+            <AlertTriangle className="w-4 h-4 text-yellow-600 flex-shrink-0" />
+            <span className="text-xs font-semibold text-yellow-800">Orchestrator Decision</span>
           </div>
+          {msg.content.split('\n').map((line, i) => (
+            <p key={i} className={`text-sm leading-relaxed ${i === 0 ? 'font-semibold text-yellow-900' : 'text-yellow-800'}`}>{line}</p>
+          ))}
+          <p className="text-xs mt-1.5 text-yellow-600">{msg.timestamp}</p>
         </div>
-      );
-    }
-
-    if (msg.type === 'decision') {
-      return (
-        <div key={index} className="flex justify-start">
-          <div className="max-w-[80%] bg-yellow-50 border border-yellow-300 rounded-2xl rounded-tl-sm px-4 py-3">
-            <div className="flex items-center gap-2 mb-1">
-              <AlertTriangle className="w-4 h-4 text-yellow-600 flex-shrink-0" />
-              <span className="text-xs font-semibold text-yellow-800">Orchestrator Decision</span>
-            </div>
-            {msg.content.split('\n').map((line, i) => (
-              <p key={i} className={`text-sm leading-relaxed ${i === 0 ? 'font-semibold text-yellow-900' : 'text-yellow-800'}`}>{line}</p>
-            ))}
-            <p className="text-xs mt-1.5 text-yellow-600">{msg.timestamp}</p>
-          </div>
-        </div>
-      );
-    }
-
-    // agent
+      </div>
+    );
     return (
       <div key={index} className="flex justify-start">
         <div className="max-w-[80%] bg-white border border-gray-200 rounded-2xl rounded-tl-sm px-4 py-2.5 shadow-sm">
@@ -166,48 +270,77 @@ const MainContent = () => {
     );
   };
 
+  if (!currentAuditId) {
+    return (
+      <>
+        <div className="h-full flex items-center justify-center bg-white">
+          <div className="text-center max-w-md px-6">
+            <div className="w-16 h-16 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-5">
+              <Upload className="w-8 h-8 text-teal-600" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Welcome to TrustGuard</h2>
+            <p className="text-sm text-gray-500 mb-6 leading-relaxed">
+              Upload governance policies, model artifacts, security documentation, and compliance records to start an audit.
+            </p>
+            <button
+              onClick={() => setShowUploadModal(true)}
+              className="bg-teal-600 hover:bg-teal-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors inline-flex items-center gap-2"
+            >
+              <Upload className="w-4 h-4" /> Upload Files to Start Audit
+            </button>
+          </div>
+        </div>
+        {showUploadModal && <FileUploadModal onClose={() => setShowUploadModal(false)} onUpload={handleFileUpload} />}
+      </>
+    );
+  }
+
+  const isRunning = status === 'running' || status === 'pending';
+
   return (
     <>
-      <div className="h-full flex flex-col bg-gray-50">
-        {/* Chat header */}
-        <div className="border-b border-gray-200 px-6 py-3 bg-white flex items-center justify-between flex-shrink-0">
+      <div className="h-full flex flex-col bg-white">
+        <div className="border-b border-gray-200 px-5 py-3 bg-white flex items-center justify-between flex-shrink-0">
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-sm font-semibold text-gray-900">
-                {currentAudit?.name || 'Audit Session'}
-              </h2>
-              {isEscalate && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full border border-yellow-300">
-                  <AlertTriangle className="w-3 h-3" />
-                  ESCALATE
-                </span>
-              )}
+              <h2 className="text-sm font-semibold text-gray-900">{currentAudit?.name ?? 'Audit Session'}</h2>
+              {status === 'escalate' && <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full border border-yellow-300"><AlertTriangle className="w-3 h-3" /> ESCALATE</span>}
+              {status === 'completed' && <span className="px-2 py-0.5 bg-green-100 text-green-800 text-xs font-medium rounded-full border border-green-300">PASS</span>}
+              {status === 'failed' && <span className="px-2 py-0.5 bg-red-100 text-red-800 text-xs font-medium rounded-full border border-red-300">FAILED</span>}
             </div>
             <p className="text-xs text-gray-400 mt-0.5">
-              {currentAudit?.company} · 5 modules evaluated
-              {uploading && (
-                <span className="ml-2 inline-flex items-center gap-1 text-teal-600">
-                  <Loader2 className="w-3 h-3 animate-spin" /> Processing…
-                </span>
-              )}
+              {currentAudit?.company ?? 'Unknown'} · 5-module evaluation
+              {isRunning && <span className="ml-2 inline-flex items-center gap-1 text-teal-600"><Loader2 className="w-3 h-3 animate-spin" /> Running…</span>}
+              {uploading && <span className="ml-2 inline-flex items-center gap-1 text-teal-600"><Loader2 className="w-3 h-3 animate-spin" /> Uploading…</span>}
             </p>
           </div>
-          <button
-            onClick={() => setShowUploadModal(true)}
-            className="text-xs text-teal-600 hover:text-teal-700 font-medium flex items-center gap-1 px-3 py-1.5 border border-teal-200 rounded-lg hover:bg-teal-50 transition-colors"
-          >
-            <Upload className="w-3.5 h-3.5" />
-            Add Files
-          </button>
+          <div className="flex items-center gap-2">
+            {(status === 'failed' || status === 'completed' || status === 'escalate') && (
+              <button
+                onClick={handleDelete}
+                className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1 px-2 py-1.5 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
+              >
+                <Trash2 className="w-3.5 h-3.5" /> Delete
+              </button>
+            )}
+            <button onClick={() => setShowUploadModal(true)} className="text-xs text-teal-600 hover:text-teal-700 font-medium flex items-center gap-1 px-3 py-1.5 border border-teal-200 rounded-lg hover:bg-teal-50 transition-colors">
+              <Upload className="w-3.5 h-3.5" /> New Audit
+            </button>
+          </div>
         </div>
 
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
-          {[...messages, ...extraMessages].map((msg, index) => renderMessage(msg as typeof TTMT_MESSAGES[0], index))}
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3 bg-white">
+          {messages.length === 0 && isRunning && (
+            <div className="flex justify-center mt-8">
+              <div className="flex items-center gap-2 text-xs text-gray-400">
+                <Loader2 className="w-3 h-3 animate-spin" /> Pipeline running — results appear automatically…
+              </div>
+            </div>
+          )}
+          {messages.map((msg, i) => renderMessage(msg, i))}
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input */}
         <div className="border-t border-gray-200 px-5 py-3 bg-white flex-shrink-0">
           <div className="flex items-end gap-2">
             <textarea
@@ -216,7 +349,7 @@ const MainContent = () => {
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Ask about findings, request clarification, or add context…"
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-xl resize-none focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-sm overflow-hidden bg-gray-50"
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-xl resize-none focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-sm overflow-hidden bg-white"
               style={{ minHeight: '40px', maxHeight: '160px' }}
               rows={1}
             />
@@ -232,9 +365,7 @@ const MainContent = () => {
         </div>
       </div>
 
-      {showUploadModal && (
-        <FileUploadModal onClose={() => setShowUploadModal(false)} onUpload={handleFileUpload} />
-      )}
+      {showUploadModal && <FileUploadModal onClose={() => setShowUploadModal(false)} onUpload={handleFileUpload} />}
     </>
   );
 };

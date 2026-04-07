@@ -1,6 +1,37 @@
 import { Shield, Bell, Settings } from 'lucide-react';
+import { useUIStore } from '../../store/uiStore';
 
 const Header = () => {
+  const { audits, auditStatus, liveResults } = useUIStore();
+
+  // Find the most recently created real audit (UUID format)
+  const recentAudit = [...audits]
+    .filter((a) => /^[0-9a-f]{8}-/.test(a.id))
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+
+  const status = recentAudit ? (auditStatus[recentAudit.id] ?? recentAudit.status) : null;
+  const results = recentAudit ? liveResults[recentAudit.id] : null;
+  const score = results?.overall_summary?.final_score;
+  const decision = results?.overall_summary?.decision ?? status?.toUpperCase();
+
+  const badgeStyle =
+    status === 'escalate' ? 'bg-yellow-900/40 border-yellow-700/50 text-yellow-300' :
+      status === 'completed' ? 'bg-green-900/40 border-green-700/50 text-green-300' :
+        status === 'failed' ? 'bg-red-900/40 border-red-700/50 text-red-300' :
+          status === 'running' || status === 'pending' ? 'bg-teal-900/40 border-teal-700/50 text-teal-300' :
+            'bg-gray-800/40 border-gray-700/50 text-gray-400';
+
+  const dotStyle =
+    status === 'escalate' ? 'bg-yellow-400 animate-pulse' :
+      status === 'completed' ? 'bg-green-400' :
+        status === 'failed' ? 'bg-red-400' :
+          status === 'running' || status === 'pending' ? 'bg-teal-400 animate-pulse' :
+            'bg-gray-500';
+
+  const badgeText = recentAudit
+    ? `${recentAudit.name} · ${decision ?? status?.toUpperCase() ?? '—'}${score != null ? ` · ${score}/100` : ''}`
+    : 'No audits yet';
+
   return (
     <header className="bg-purple-900 text-white border-b border-gray-700 flex-shrink-0">
       <div className="px-5 py-3 flex items-center justify-between">
@@ -15,10 +46,10 @@ const Header = () => {
           </div>
         </div>
 
-        {/* Center badge */}
-        <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-yellow-900/40 border border-yellow-700/50 rounded-full">
-          <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
-          <span className="text-xs text-yellow-300 font-medium">TTMT Audit · ESCALATE · 85.5/100</span>
+        {/* Live status badge */}
+        <div className={`hidden md:flex items-center gap-2 px-3 py-1 border rounded-full ${badgeStyle}`}>
+          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${dotStyle}`} />
+          <span className="text-xs font-medium truncate max-w-xs">{badgeText}</span>
         </div>
 
         {/* Right actions */}

@@ -97,6 +97,7 @@ export class AuditWebSocket {
     private readonly maxReconnects: number;
     private readonly reconnectDelayMs: number;
     private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    private _pingInterval: ReturnType<typeof setInterval> | null = null;
     private manualClose = false;
 
     constructor({
@@ -120,6 +121,7 @@ export class AuditWebSocket {
     disconnect(): void {
         this.manualClose = true;
         if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+        if (this._pingInterval) { clearInterval(this._pingInterval); this._pingInterval = null; }
         if (this.ws) {
             this.ws.close(1000, 'Client disconnect');
             this.ws = null;
@@ -139,6 +141,12 @@ export class AuditWebSocket {
         this.ws.onopen = () => {
             this.reconnectAttempts = 0;
             this.handlers.onOpen?.();
+            // Send ping every 10s to keep connection alive
+            this._pingInterval = setInterval(() => {
+                if (this.ws?.readyState === WebSocket.OPEN) {
+                    this.ws.send('ping');
+                }
+            }, 10000);
         };
 
         this.ws.onmessage = (event: MessageEvent) => {
@@ -166,6 +174,7 @@ export class AuditWebSocket {
     }
 
     private _dispatch(msg: WsMessage): void {
+        if ((msg as any).type === 'ping') return; // server keepalive — ignore
         switch (msg.type) {
             case 'progress': this.handlers.onProgress?.(msg); break;
             case 'module_complete': this.handlers.onModuleComplete?.(msg); break;
