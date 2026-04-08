@@ -17,9 +17,26 @@ MAX_RETRIES = 3
 RETRY_DELAY = 2  # seconds between retries
 
 
+# Appended to every system prompt for consistent scoring behaviour
+_SCORING_RULES = """
+
+SCORING RULES (follow exactly):
+- Score 1.0: Clear, explicit, documented evidence fully meeting the criterion.
+- Score 0.75: Evidence present but with minor gaps or partial implementation.
+- Score 0.5: Partial evidence or significant gaps — criterion only partially met.
+- Score 0.25: Minimal evidence — mostly absent but faint indication exists.
+- Score 0.0: No evidence found in the document for this criterion.
+
+Only use these five values: 0.0, 0.25, 0.5, 0.75, 1.0.
+Base scores strictly on text present in the document — do not infer or assume.
+If the document is a financial filing (10-K, annual report) with no AI governance content, score all criteria 0.0.
+"""
+
+
 def call_llm_json(client, model: str, system_prompt: str, user_prompt: str) -> dict:
     """
     Call the OpenAI chat API and return parsed JSON.
+    Uses temperature=0 for deterministic, reproducible scoring.
     Retries up to MAX_RETRIES times on empty or malformed responses.
     """
     last_error: Exception | None = None
@@ -29,12 +46,13 @@ def call_llm_json(client, model: str, system_prompt: str, user_prompt: str) -> d
         try:
             response = client.chat.completions.create(
                 model=model,
+                temperature=0,       # deterministic output — same doc = same score
+                seed=42,             # additional reproducibility where supported
                 messages=[
-                    {"role": "system", "content": system_prompt},
+                    {"role": "system", "content": system_prompt + _SCORING_RULES},
                     {"role": "user",   "content": user_prompt},
                 ],
                 # Ask for JSON explicitly when supported
-                # (gpt-3.5-turbo-1106+ supports response_format)
                 **({"response_format": {"type": "json_object"}}
                    if _supports_json_mode(model) else {}),
             )
@@ -89,5 +107,6 @@ def _supports_json_mode(model: str) -> bool:
         "gpt-3.5-turbo-0125", "gpt-3.5-turbo-1106",
         "gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano",
         "gpt-5.4", "gpt-5.4-mini",
+        "gpt-4o-2024-08-06", "gpt-4o-mini-2024-07-18",
     }
     return model in json_mode_models

@@ -475,7 +475,7 @@ def _run_arbitration(
         # Fallback calculation matching the notebook's logic
         avg = sum(vals) / len(vals) if vals else 0
         avg_100 = round(avg * 100, 1)
-        confidence = round(1.0 - spread, 2)
+        confidence = round(1.0 - spread, 3)
         if divergence == "critical":
             decision = "ESCALATE"
             notes = "Critical divergence across modules → mandatory human review"

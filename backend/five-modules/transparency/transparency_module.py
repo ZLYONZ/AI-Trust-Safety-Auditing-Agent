@@ -7,7 +7,7 @@ from transparency_schema import TransparencyFinding, TransparencyResult, Evidenc
 from transparency_scoring import calculate_module_score, determine_severity, determine_risk_level
 
 client = OpenAI()
-MODEL = "gpt-3.5-turbo"
+MODEL = "gpt-5.4-mini"
 
 
 class TransparencyModule:

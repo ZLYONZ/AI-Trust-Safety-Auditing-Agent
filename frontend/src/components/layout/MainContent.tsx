@@ -70,13 +70,13 @@ const MainContent = () => {
 
     // Show progress messages at fixed intervals while pipeline runs
     const STAGES = [
-      { delay: 4000, msg: 'Running Governance & Compliance module…' },
-      { delay: 18000, msg: 'Running Fairness & Bias module…' },
-      { delay: 32000, msg: 'Running Security & Privacy module…' },
-      { delay: 46000, msg: 'Running Explainability & Audit Trail module…' },
-      { delay: 60000, msg: 'Running Accuracy & Performance module…' },
-      { delay: 74000, msg: 'Running Council of Experts peer review…' },
-      { delay: 88000, msg: 'Running arbitrator synthesis…' },
+      { delay: 1000, msg: 'Running Governance & Compliance module…' },
+      { delay: 2000, msg: 'Running Fairness & Bias module…' },
+      { delay: 3000, msg: 'Running Security & Privacy module…' },
+      { delay: 4000, msg: 'Running Explainability & Audit Trail module…' },
+      { delay: 5000, msg: 'Running Accuracy & Performance module…' },
+      { delay: 10000, msg: 'Running Council of Experts peer review…' },
+      { delay: 20000, msg: 'Running arbitrator synthesis…' },
     ];
     const stageTimers: ReturnType<typeof setTimeout>[] = [];
     STAGES.forEach(({ delay, msg }) => {
@@ -84,6 +84,22 @@ const MainContent = () => {
     });
 
     const clearStages = () => stageTimers.forEach(clearTimeout);
+
+    // Shared done-guard so poll and fetchResults don't both fire
+    let done = false;
+
+    const handleTerminal = (termStatus: string) => {
+      if (done) return;
+      done = true;
+      clearInterval(interval);
+      clearStages();
+      pollRef.current = null;
+      const term = termStatus === 'escalate' ? 'escalate'
+        : termStatus === 'completed' ? 'completed' : 'failed';
+      updateAuditStatus(id, term as any);
+      push(id, { type: 'system', content: 'Pipeline complete — loading results…' });
+      fetchResults();
+    };
 
     const fetchResults = async (attempt = 1): Promise<void> => {
       try {
@@ -95,26 +111,37 @@ const MainContent = () => {
           content: `Final Decision: ${s.decision}\nComposite score: ${s.final_score} / 100 · Confidence: ${Math.round(s.confidence * 100)}% · Divergence: ${s.divergence}\n${s.notes}`,
         });
       } catch (e) {
-        if (attempt < 10) {
-          setTimeout(() => fetchResults(attempt + 1), 2000);
+        if (attempt < 12) {
+          setTimeout(() => fetchResults(attempt + 1), 3000);
         } else {
-          console.error('Failed to load results after retries:', e);
-          push(id, { type: 'system', content: 'Audit complete — see Modules tab for results.' });
+          push(id, { type: 'system', content: 'Results saved — click Modules tab to view details.' });
         }
       }
     };
 
+    // After arbitrator stage fires, poll more aggressively (every 2s instead of 3s)
+    // for the final 60 seconds of the pipeline
+    stageTimers.push(setTimeout(() => {
+      if (done) return;
+      const fastInterval = setInterval(async () => {
+        if (done) { clearInterval(fastInterval); return; }
+        try {
+          const res = await auditApi.getAuditStatus(id);
+          if (['completed', 'escalate', 'failed'].includes(res.status)) {
+            clearInterval(fastInterval);
+            handleTerminal(res.status);
+          }
+        } catch { }
+      }, 2000);
+      stageTimers.push(fastInterval as any);
+    }, 76000));
+
     const interval = setInterval(async () => {
+      if (done) { clearInterval(interval); return; }
       try {
         const res = await auditApi.getAuditStatus(id);
         if (['completed', 'escalate', 'failed'].includes(res.status)) {
-          clearInterval(interval);
-          clearStages();
-          pollRef.current = null;
-          const term = res.status === 'escalate' ? 'escalate'
-            : res.status === 'completed' ? 'completed' : 'failed';
-          updateAuditStatus(id, term as any);
-          fetchResults();
+          handleTerminal(res.status);
         }
       } catch { }
     }, 3000);
@@ -122,7 +149,12 @@ const MainContent = () => {
     pollRef.current = interval;
     // Safety: stop after 15 minutes
     setTimeout(() => {
-      if (pollRef.current === interval) { clearInterval(interval); clearStages(); }
+      if (!done) {
+        done = true;
+        clearInterval(interval);
+        clearStages();
+        push(id, { type: 'system', content: 'Audit timed out — refresh to check status.' });
+      }
     }, 900000);
   };
 

@@ -7,7 +7,7 @@ from security_schema import SecurityFinding, SecurityResult, Evidence
 from security_scoring import calculate_module_score, determine_severity, determine_risk_level
 
 client = OpenAI()
-MODEL = "gpt-3.5-turbo"
+MODEL = "gpt-5.4-mini"
 
 
 class SecurityModule:

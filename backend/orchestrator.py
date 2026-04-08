@@ -150,12 +150,14 @@ class AuditOrchestrator:
 
             try:
                 resp = client.chat.completions.create(
-                    model="gpt-3.5-turbo",
+                    model="gpt-5.4-mini",
+                    temperature=0,
+                    seed=42,
                     messages=[
                         {"role": "system", "content": _PEER_REVIEW_SYSTEM},
                         {"role": "user",   "content": prompt},
                     ],
-                    max_tokens=300,
+                    max_tokens=400,
                 )
                 raw = resp.choices[0].message.content or "{}"
                 card = json.loads(raw)
@@ -209,12 +211,14 @@ class AuditOrchestrator:
 
         try:
             resp = client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model="gpt-5.4-mini",
+                temperature=0,
+                seed=42,
                 messages=[
                     {"role": "system", "content": "You are a senior AI audit arbitrator. Return ONLY JSON."},
                     {"role": "user",   "content": prompt},
                 ],
-                max_tokens=300,
+                max_tokens=400,
             )
             raw = resp.choices[0].message.content or "{}"
             result = json.loads(raw)
