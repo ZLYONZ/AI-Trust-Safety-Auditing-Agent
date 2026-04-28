@@ -1,4 +1,4 @@
-import { Upload, Send, Loader2, AlertTriangle, Trash2 } from 'lucide-react';
+import { Upload, Send, Loader2, AlertTriangle, Trash2, Sparkles } from 'lucide-react';
 import { useUIStore, apiResponseToAudit, type ChatMessage } from '../../store/uiStore';
 import { useState, useRef, useEffect } from 'react';
 import { auditApi } from '../../services/auditApi';
@@ -9,8 +9,9 @@ const MainContent = () => {
   const {
     currentAuditId, audits, liveMessages, auditStatus,
     addAudit, updateAuditStatus, setAuditResults,
-    addChatMessage, setCurrentAudit, removeAudit,
+    addChatMessage, setCurrentAudit, removeAudit, liveResults,
   } = useUIStore();
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const [message, setMessage] = useState('');
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -70,13 +71,13 @@ const MainContent = () => {
 
     // Show progress messages at fixed intervals while pipeline runs
     const STAGES = [
-      { delay: 1000, msg: 'Running Governance & Compliance module…' },
-      { delay: 2000, msg: 'Running Fairness & Bias module…' },
-      { delay: 3000, msg: 'Running Security & Privacy module…' },
-      { delay: 4000, msg: 'Running Explainability & Audit Trail module…' },
-      { delay: 5000, msg: 'Running Accuracy & Performance module…' },
-      { delay: 10000, msg: 'Running Council of Experts peer review…' },
-      { delay: 20000, msg: 'Running arbitrator synthesis…' },
+      { delay: 2000, msg: 'Running Governance & Compliance module…' },
+      { delay: 14000, msg: 'Running Fairness & Bias module…' },
+      { delay: 26000, msg: 'Running Security & Privacy module…' },
+      { delay: 38000, msg: 'Running Explainability & Audit Trail module…' },
+      { delay: 50000, msg: 'Running Accuracy & Performance module…' },
+      { delay: 62000, msg: 'Running Council of Experts peer review…' },
+      { delay: 74000, msg: 'Running arbitrator synthesis…' },
     ];
     const stageTimers: ReturnType<typeof setTimeout>[] = [];
     STAGES.forEach(({ delay, msg }) => {
@@ -374,26 +375,70 @@ const MainContent = () => {
         </div>
 
         <div className="border-t border-gray-200 px-5 py-3 bg-white flex-shrink-0">
-          <div className="flex items-end gap-2">
+          {/* Smart suggestions */}
+          {showSuggestions && currentAuditId && (
+            <div className="mb-2 flex flex-wrap gap-1.5">
+              {[
+                ...(liveResults[currentAuditId]
+                  ? [
+                    'What are the highest-priority remediation actions?',
+                    'Which module has the most critical gaps?',
+                    'Summarize the governance findings',
+                    'What GDPR articles need attention?',
+                    'How can we improve the security score?',
+                    'Explain the ESCALATE decision',
+                  ]
+                  : [
+                    'What documents should I upload for a full audit?',
+                    'What does each module evaluate?',
+                    'How are scores calculated?',
+                  ]
+                ),
+              ].map((suggestion) => (
+                <button
+                  key={suggestion}
+                  onClick={() => {
+                    setMessage(suggestion);
+                    setShowSuggestions(false);
+                    textareaRef.current?.focus();
+                  }}
+                  className="text-xs px-2.5 py-1 bg-teal-50 text-teal-700 border border-teal-200 rounded-full hover:bg-teal-100 transition-colors text-left"
+                >
+                  {suggestion}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="flex items-center gap-2 border border-gray-300 rounded-xl focus-within:ring-2 focus-within:ring-teal-500 focus-within:border-transparent bg-white pr-2">
             <textarea
               ref={textareaRef}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask about findings, request clarification, or add context…"
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-xl resize-none focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-sm overflow-hidden bg-white"
-              style={{ minHeight: '40px', maxHeight: '160px' }}
+              onFocus={() => setShowSuggestions(true)}
+              placeholder="Ask about findings, request improvement advice…"
+              className="flex-1 px-3 py-2.5 resize-none outline-none text-sm overflow-hidden bg-transparent rounded-xl"
+              style={{ minHeight: '42px', maxHeight: '160px' }}
               rows={1}
             />
-            <button
-              onClick={handleSendMessage}
-              disabled={!message.trim()}
-              className="bg-teal-600 hover:bg-teal-700 disabled:bg-gray-200 disabled:cursor-not-allowed text-white p-2.5 rounded-xl transition-colors flex-shrink-0"
-            >
-              <Send className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <button
+                onClick={() => setShowSuggestions((v) => !v)}
+                className="p-1 text-gray-300 hover:text-teal-500 transition-colors"
+                title="Show suggestions"
+              >
+                <Sparkles className="w-4 h-4" />
+              </button>
+              <button
+                onClick={handleSendMessage}
+                disabled={!message.trim()}
+                className="bg-teal-600 hover:bg-teal-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white p-2 rounded-lg transition-colors"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </div>
           </div>
-          <p className="text-xs text-gray-400 mt-1.5">Enter to send · Shift+Enter for new line</p>
+          <p className="text-xs text-gray-400 mt-1.5">Enter to send · Shift+Enter for new line · ✦ for suggestions</p>
         </div>
       </div>
 

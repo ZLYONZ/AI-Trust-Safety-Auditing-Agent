@@ -136,6 +136,7 @@ interface UIStore {
   setAudits: (audits: Audit[]) => void;
   addAudit: (audit: Audit) => void;
   removeAudit: (id: string) => void;
+  renameAudit: (id: string, name: string) => void;
   updateAuditStatus: (auditId: string, status: Audit['status']) => void;
   setAuditResults: (auditId: string, results: AuditResults) => void;
   addChatMessage: (auditId: string, msg: ChatMessage) => void;
@@ -177,6 +178,10 @@ export const useUIStore = create<UIStore>((set) => ({
     const exists = s.audits.some((a) => a.id === audit.id);
     return exists ? {} : { audits: [audit, ...s.audits] };
   }),
+
+  renameAudit: (id, name) => set((s) => ({
+    audits: s.audits.map((a) => a.id === id ? { ...a, name } : a),
+  })),
 
   removeAudit: (id) => set((s) => ({
     audits: s.audits.filter((a) => a.id !== id),

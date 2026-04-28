@@ -1,5 +1,5 @@
-import { X, Download, Shield, Scale, Eye, Gauge, Lock, ChevronRight, AlertTriangle, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
-import { useEffect } from 'react';
+import { X, Download, Shield, Scale, Eye, Gauge, Lock, ChevronRight, AlertTriangle, CheckCircle, AlertCircle, RefreshCw, Pencil, FileJson, FileText } from 'lucide-react';
+import { useEffect, useState, useRef } from 'react';
 import { useUIStore, type AuditResults } from '../../store/uiStore';
 import type { ModuleResult } from '../../services/auditApi';
 
@@ -287,8 +287,25 @@ const RightPanel = () => {
   const {
     currentAuditId, audits, liveResults, auditStatus,
     closeRightPanel, activeRightTab, setActiveRightTab,
-    activeModuleId, setActiveModuleId, setAuditResults,
+    activeModuleId, setActiveModuleId, setAuditResults, renameAudit,
   } = useUIStore();
+
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleValue, setTitleValue] = useState('');
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const titleInputRef = useRef<HTMLInputElement>(null);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close export menu on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(e.target as Node)) {
+        setShowExportMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   const currentAudit = audits.find((a) => a.id === currentAuditId);
   const results: AuditResults | undefined = currentAuditId ? liveResults[currentAuditId] : undefined;
@@ -298,15 +315,133 @@ const RightPanel = () => {
   const isRealAudit = currentAuditId ? /^[0-9a-f]{8}-/.test(currentAuditId) : false;
 
   // ── Handlers (defined before early return — used in JSX and useEffect) ───
-  const handleExport = () => {
+  const handleExportJSON = () => {
     if (!results) return;
     const blob = new Blob([JSON.stringify(results, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `TrustGuard_${currentAuditId ?? 'audit'}.json`;
+    a.download = `TrustGuard_${currentAudit?.name ?? currentAuditId ?? 'audit'}.json`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handleExportPDF = () => {
+    if (!results) return;
+    const s = results.overall_summary;
+    const auditName = currentAudit?.name ?? 'Audit Report';
+    const date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    const moduleRows = Object.entries(results.modules).map(([id, mod]) => {
+      const meta = MODULE_META[id] ?? { short: id };
+      const passed = mod.module_score >= (mod.pass_threshold ?? 0.75);
+      return `<tr style="border-bottom:1px solid #e5e7eb">
+        <td style="padding:8px 12px;font-weight:500">${meta.short}</td>
+        <td style="padding:8px 12px;font-family:monospace">${mod.module_score.toFixed(3)}</td>
+        <td style="padding:8px 12px">
+          <span style="padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;background:${passed ? '#dcfce7' : '#fef9c3'};color:${passed ? '#166534' : '#854d0e'}">
+            ${passed ? 'PASS' : 'FAIL'}
+          </span>
+        </td>
+        <td style="padding:8px 12px;color:#6b7280;font-size:12px">${mod.risk_level} risk</td>
+      </tr>`;
+    }).join('');
+
+    const findingRows = Object.values(results.modules).flatMap((mod) =>
+      mod.findings.filter((f) => f.score < 0.75).map((f) =>
+        `<tr style="border-bottom:1px solid #e5e7eb">
+          <td style="padding:8px 12px;font-weight:500;font-size:12px">${f.criterion_id}</td>
+          <td style="padding:8px 12px;font-size:12px">${f.description}</td>
+          <td style="padding:8px 12px;font-family:monospace;font-size:12px">${f.score.toFixed(2)}</td>
+          <td style="padding:8px 12px;font-size:11px;color:#6b7280">${f.severity}</td>
+        </tr>`
+      )
+    ).join('');
+
+    const decisionColor = s.decision === 'PASS' ? '#166534' : s.decision === 'ESCALATE' ? '#854d0e' : '#991b1b';
+    const decisionBg = s.decision === 'PASS' ? '#dcfce7' : s.decision === 'ESCALATE' ? '#fef9c3' : '#fee2e2';
+
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>${auditName} — TrustGuard Audit Report</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #111827; margin: 0; padding: 40px; max-width: 800px; margin: 0 auto; }
+    h1 { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+    h2 { font-size: 16px; font-weight: 600; margin: 28px 0 12px; color: #374151; border-bottom: 2px solid #e5e7eb; padding-bottom: 6px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+    th { text-align: left; padding: 8px 12px; background: #f9fafb; font-size: 12px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    .badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-weight: 700; font-size: 14px; }
+    .meta { color: #6b7280; font-size: 13px; margin-bottom: 24px; }
+    .score-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+    .score-card { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px 16px; }
+    .score-card .label { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .score-card .value { font-size: 22px; font-weight: 700; }
+    .finding { background: #fffbeb; border-left: 3px solid #f59e0b; padding: 8px 12px; margin-bottom: 6px; border-radius: 0 6px 6px 0; font-size: 12px; }
+    @media print { body { padding: 20px; } }
+  </style>
+</head>
+<body>
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+    <div>
+      <div style="font-size:11px;font-weight:600;color:#0f766e;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">TrustGuard Audit Report</div>
+      <h1>${auditName}</h1>
+    </div>
+    <span class="badge" style="background:${decisionBg};color:${decisionColor}">${s.decision}</span>
+  </div>
+  <div class="meta">Generated ${date} &nbsp;·&nbsp; ${Object.keys(results.modules).length} modules evaluated</div>
+
+  <div class="score-grid">
+    <div class="score-card">
+      <div class="label">Final Score</div>
+      <div class="value">${s.final_score}<span style="font-size:14px;color:#6b7280">/100</span></div>
+    </div>
+    <div class="score-card">
+      <div class="label">Confidence</div>
+      <div class="value">${Math.round(s.confidence * 100)}<span style="font-size:14px;color:#6b7280">%</span></div>
+    </div>
+    <div class="score-card">
+      <div class="label">Divergence</div>
+      <div class="value" style="font-size:16px;text-transform:capitalize">${s.divergence}</div>
+    </div>
+    <div class="score-card">
+      <div class="label">Modules Passed</div>
+      <div class="value">${Object.values(results.modules).filter((m) => m.module_score >= (m.pass_threshold ?? 0.75)).length}<span style="font-size:14px;color:#6b7280">/${Object.keys(results.modules).length}</span></div>
+    </div>
+  </div>
+
+  <p style="font-size:13px;color:#374151;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px">${s.notes}</p>
+
+  <h2>Module Scores</h2>
+  <table>
+    <thead><tr><th>Module</th><th>Score</th><th>Status</th><th>Risk</th></tr></thead>
+    <tbody>${moduleRows}</tbody>
+  </table>
+
+  ${findingRows ? `<h2>Risk Findings (below threshold)</h2>
+  <table>
+    <thead><tr><th>ID</th><th>Description</th><th>Score</th><th>Severity</th></tr></thead>
+    <tbody>${findingRows}</tbody>
+  </table>` : ''}
+
+  ${results.key_findings.length > 0 ? `<h2>Key Findings</h2>
+  ${results.key_findings.map((f) => `<div class="finding">${f}</div>`).join('')}` : ''}
+
+  <div style="margin-top:40px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:11px;color:#9ca3af">
+    Generated by TrustGuard &nbsp;·&nbsp; ${date} &nbsp;·&nbsp; Confidential
+  </div>
+</body>
+</html>`;
+
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const win = window.open(url, '_blank');
+    if (win) {
+      win.addEventListener('load', () => {
+        setTimeout(() => { win.print(); URL.revokeObjectURL(url); }, 500);
+      });
+    }
   };
 
   const handleReload = async () => {
@@ -339,8 +474,35 @@ const RightPanel = () => {
     <div className="h-full flex flex-col bg-white">
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2.5 border-b border-gray-200 flex-shrink-0">
-        <div className="min-w-0">
-          <p className="text-sm font-semibold text-gray-900 truncate">{currentAudit?.name ?? 'Audit'}</p>
+        <div className="flex-1 min-w-0 mr-2">
+          {editingTitle ? (
+            <input
+              ref={titleInputRef}
+              value={titleValue}
+              onChange={(e) => setTitleValue(e.target.value)}
+              onBlur={() => {
+                if (titleValue.trim() && currentAuditId) renameAudit(currentAuditId, titleValue.trim());
+                setEditingTitle(false);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') { if (titleValue.trim() && currentAuditId) renameAudit(currentAuditId, titleValue.trim()); setEditingTitle(false); }
+                if (e.key === 'Escape') setEditingTitle(false);
+              }}
+              className="w-full text-sm font-semibold text-gray-900 border-b-2 border-teal-500 outline-none bg-transparent pb-0.5"
+              autoFocus
+            />
+          ) : (
+            <div className="flex items-center gap-1 group">
+              <p className="text-sm font-semibold text-gray-900 truncate">{currentAudit?.name ?? 'Audit'}</p>
+              <button
+                onClick={() => { setTitleValue(currentAudit?.name ?? ''); setEditingTitle(true); }}
+                className="opacity-0 group-hover:opacity-100 p-0.5 text-gray-400 hover:text-teal-600 transition-all flex-shrink-0"
+                title="Rename audit"
+              >
+                <Pencil className="w-3 h-3" />
+              </button>
+            </div>
+          )}
           <p className="text-xs text-gray-500">{currentAudit?.company ?? ''}</p>
         </div>
         <div className="flex items-center gap-1 flex-shrink-0">
@@ -350,9 +512,31 @@ const RightPanel = () => {
             </button>
           )}
           {results && (
-            <button onClick={handleExport} title="Export JSON" className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-              <Download className="w-3.5 h-3.5" />
-            </button>
+            <div className="relative" ref={exportMenuRef}>
+              <button
+                onClick={() => setShowExportMenu((v) => !v)}
+                title="Export"
+                className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <Download className="w-3.5 h-3.5" />
+              </button>
+              {showExportMenu && (
+                <div className="absolute right-0 top-8 z-50 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-[130px]">
+                  <button
+                    onClick={() => { handleExportJSON(); setShowExportMenu(false); }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    <FileJson className="w-3.5 h-3.5 text-blue-500" /> Export JSON
+                  </button>
+                  <button
+                    onClick={() => { handleExportPDF(); setShowExportMenu(false); }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-red-500" /> Export PDF
+                  </button>
+                </div>
+              )}
+            </div>
           )}
           <button onClick={closeRightPanel} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
             <X className="w-3.5 h-3.5" />
