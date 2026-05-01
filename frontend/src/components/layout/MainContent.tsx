@@ -1,6 +1,6 @@
 import {
   Upload, Send, Loader2, AlertTriangle, Trash2, Sparkles,
-  CheckCircle, XCircle, Clock, Shield, Scale, Lock, Eye, Gauge,
+  CheckCircle, XCircle, Shield, Scale, Lock, Eye, Gauge,
   ChevronRight,
 } from 'lucide-react';
 import { useUIStore, apiResponseToAudit, type ChatMessage } from '../../store/uiStore';
@@ -203,7 +203,7 @@ const MainContent = () => {
   const {
     currentAuditId, audits, liveMessages, auditStatus,
     addAudit, updateAuditStatus, setAuditResults,
-    addChatMessage, setCurrentAudit, removeAudit, liveResults,
+    setCurrentAudit, removeAudit, liveResults,
     setActiveRightTab, setActiveModuleId, openRightPanel,
   } = useUIStore();
 
