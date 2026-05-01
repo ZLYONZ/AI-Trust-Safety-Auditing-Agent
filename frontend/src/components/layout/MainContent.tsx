@@ -1,30 +1,231 @@
-import { Upload, Send, Loader2, AlertTriangle, Trash2, Sparkles } from 'lucide-react';
+import {
+  Upload, Send, Loader2, AlertTriangle, Trash2, Sparkles,
+  CheckCircle, XCircle, Clock, Shield, Scale, Lock, Eye, Gauge,
+  ChevronRight,
+} from 'lucide-react';
 import { useUIStore, apiResponseToAudit, type ChatMessage } from '../../store/uiStore';
 import { useState, useRef, useEffect } from 'react';
-import { auditApi } from '../../services/auditApi';
+import { auditApi, type AuditResults } from '../../services/auditApi';
 import { AuditWebSocket } from '../../services/auditWebSocket';
 import FileUploadModal from './FileUploadModal';
+
+// ── Module display metadata ────────────────────────────────────────────────
+
+const MODULE_META: Record<string, { label: string; icon: JSX.Element; color: string; bar: string }> = {
+  M1_GOVERNANCE: { label: 'Governance', icon: <Shield className="w-3.5 h-3.5" />, color: '#b45309', bar: '#b45309' },
+  M2_FAIRNESS: { label: 'Fairness', icon: <Scale className="w-3.5 h-3.5" />, color: '#0f766e', bar: '#0f766e' },
+  M3_SECURITY: { label: 'Security', icon: <Lock className="w-3.5 h-3.5" />, color: '#1d4ed8', bar: '#1d4ed8' },
+  M4_EXPLAINABILITY: { label: 'Transparency', icon: <Eye className="w-3.5 h-3.5" />, color: '#c2410c', bar: '#c2410c' },
+  M5_ACCURACY: { label: 'Performance', icon: <Gauge className="w-3.5 h-3.5" />, color: '#15803d', bar: '#15803d' },
+};
+
+const MODULE_ORDER = ['M1_GOVERNANCE', 'M2_FAIRNESS', 'M3_SECURITY', 'M4_EXPLAINABILITY', 'M5_ACCURACY'];
+
+const STAGE_LABELS = [
+  'Governance & Compliance',
+  'Fairness & Bias',
+  'Security & Privacy',
+  'Explainability & Audit Trail',
+  'Accuracy & Performance',
+];
+
+// ── Running state card ─────────────────────────────────────────────────────
+
+const RunningCard = ({ stageIndex }: { stageIndex: number }) => (
+  <div className="bg-white border border-gray-200 rounded-2xl p-6 w-full max-w-xl mx-auto">
+    <div className="flex items-center gap-3 mb-6">
+      <div className="w-10 h-10 bg-teal-50 rounded-full flex items-center justify-center flex-shrink-0">
+        <Loader2 className="w-5 h-5 text-teal-600 animate-spin" />
+      </div>
+      <div>
+        <p className="text-sm font-semibold text-gray-900">
+          {stageIndex < 5 ? `Running ${STAGE_LABELS[stageIndex]} module…` : stageIndex === 5 ? 'Running Council of Experts review…' : 'Running arbitrator synthesis…'}
+        </p>
+        <p className="text-xs text-gray-400 mt-0.5">
+          {stageIndex < 5 ? `Module ${stageIndex + 1} of 5` : 'Final stage'}
+        </p>
+      </div>
+    </div>
+
+    {/* Progress bar */}
+    <div className="flex gap-1.5 mb-4">
+      {STAGE_LABELS.map((label, i) => (
+        <div key={label} className="flex-1">
+          <div
+            className="h-1.5 rounded-full transition-all duration-500"
+            style={{
+              background: i < stageIndex ? '#0f766e' : i === stageIndex ? '#5eead4' : '#e5e7eb',
+            }}
+          />
+        </div>
+      ))}
+    </div>
+
+    {/* Completed modules so far */}
+    <div className="space-y-1.5">
+      {STAGE_LABELS.slice(0, Math.min(stageIndex, 5)).map((label, i) => (
+        <div key={label} className="flex items-center gap-2 text-xs text-gray-500">
+          <CheckCircle className="w-3.5 h-3.5 text-teal-500 flex-shrink-0" />
+          <span>{label}</span>
+        </div>
+      ))}
+      {stageIndex < 5 && (
+        <div className="flex items-center gap-2 text-xs text-teal-700 font-medium">
+          <Loader2 className="w-3.5 h-3.5 text-teal-500 animate-spin flex-shrink-0" />
+          <span>{STAGE_LABELS[stageIndex]}</span>
+        </div>
+      )}
+    </div>
+  </div>
+);
+
+// ── Results card ───────────────────────────────────────────────────────────
+
+const ResultsCard = ({
+  results,
+  status,
+  onViewDetails,
+}: {
+  results: AuditResults;
+  status: string | null;
+  onViewDetails: (target: string) => void;
+}) => {
+  const s = results.overall_summary;
+  const passedCount = Object.values(results.modules).filter(
+    (m) => m.module_score >= (m.pass_threshold ?? 0.75)
+  ).length;
+  const totalCount = Object.keys(results.modules).length;
+
+  const decisionColors = {
+    PASS: { bg: 'bg-green-50', border: 'border-green-200', badge: 'bg-green-100 text-green-800 border-green-300', text: 'text-green-900' },
+    FAIL: { bg: 'bg-red-50', border: 'border-red-200', badge: 'bg-red-100 text-red-800 border-red-300', text: 'text-red-900' },
+    ESCALATE: { bg: 'bg-amber-50', border: 'border-amber-200', badge: 'bg-amber-100 text-amber-800 border-amber-300', text: 'text-amber-900' },
+  };
+  const dc = decisionColors[s.decision as keyof typeof decisionColors] ?? decisionColors.ESCALATE;
+
+  return (
+    <div className="w-full max-w-xl mx-auto space-y-4">
+
+      {/* Decision banner */}
+      <div className={`rounded-2xl p-5 border ${dc.bg} ${dc.border}`}>
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Audit Decision</p>
+            <p className={`text-2xl font-semibold ${dc.text}`}>{s.decision}</p>
+          </div>
+          <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-full border ${dc.badge}`}>
+            {s.decision === 'ESCALATE' && <AlertTriangle className="w-3 h-3" />}
+            {s.decision === 'PASS' && <CheckCircle className="w-3 h-3" />}
+            {s.decision === 'FAIL' && <XCircle className="w-3 h-3" />}
+            {s.decision}
+          </span>
+        </div>
+        <p className="text-xs text-gray-500 leading-relaxed mb-4">{s.notes}</p>
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { label: 'Final Score', value: `${s.final_score}`, sub: '/ 100' },
+            { label: 'Confidence', value: `${Math.round(s.confidence * 100)}%`, sub: '' },
+            { label: 'Modules', value: `${passedCount}/${totalCount}`, sub: 'passed' },
+          ].map(({ label, value, sub }) => (
+            <div key={label} className="bg-white/60 rounded-xl p-3 border border-white/80">
+              <p className="text-xs text-gray-500 mb-1">{label}</p>
+              <p className="text-xl font-semibold text-gray-900">{value} <span className="text-xs font-normal text-gray-400">{sub}</span></p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Module scores */}
+      <div className="bg-white border border-gray-200 rounded-2xl p-5">
+        <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Module Scores</p>
+        <div className="space-y-3">
+          {MODULE_ORDER.filter((id) => results.modules[id]).map((id) => {
+            const mod = results.modules[id];
+            const meta = MODULE_META[id] ?? { label: id, icon: null, color: '#6b7280', bar: '#6b7280' };
+            const passed = mod.module_score >= (mod.pass_threshold ?? 0.75);
+            return (
+              <div
+                key={id}
+                className="group cursor-pointer"
+                onClick={() => onViewDetails(id)}
+              >
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-2">
+                    <span style={{ color: meta.color }}>{meta.icon}</span>
+                    <span className="text-sm text-gray-700 group-hover:text-teal-700 transition-colors">{meta.label}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono text-gray-500">{mod.module_score.toFixed(3)}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${passed ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-800'}`}>
+                      {passed ? 'PASS' : 'FAIL'}
+                    </span>
+                    <ChevronRight className="w-3.5 h-3.5 text-gray-300 group-hover:text-teal-500 transition-colors" />
+                  </div>
+                </div>
+                <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-700"
+                    style={{ width: `${mod.module_score * 100}%`, background: meta.bar }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Key findings */}
+      {results.key_findings.length > 0 && (
+        <div className="bg-white border border-gray-200 rounded-2xl p-5">
+          <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Key Findings</p>
+          <div className="space-y-2">
+            {results.key_findings.map((f, i) => (
+              <div
+                key={i}
+                onClick={() => onViewDetails('risks')}
+                className="flex items-start gap-2.5 p-2.5 bg-gray-50 rounded-xl border-l-2 border-teal-500 cursor-pointer hover:bg-teal-50 hover:border-teal-600 transition-colors group"
+              >
+                <AlertTriangle className="w-3.5 h-3.5 text-teal-500 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-gray-700 leading-relaxed group-hover:text-teal-800">{f}</p>
+                <ChevronRight className="w-3.5 h-3.5 text-gray-300 group-hover:text-teal-500 flex-shrink-0 mt-0.5 ml-auto transition-colors" />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ── Main component ─────────────────────────────────────────────────────────
 
 const MainContent = () => {
   const {
     currentAuditId, audits, liveMessages, auditStatus,
     addAudit, updateAuditStatus, setAuditResults,
     addChatMessage, setCurrentAudit, removeAudit, liveResults,
+    setActiveRightTab, setActiveModuleId, openRightPanel,
   } = useUIStore();
-  const [showSuggestions, setShowSuggestions] = useState(false);
 
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [message, setMessage] = useState('');
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [stageIndex, setStageIndex] = useState(0);
+  const [userMessages, setUserMessages] = useState<ChatMessage[]>([]);
+
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<AuditWebSocket | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const currentAudit = audits.find((a) => a.id === currentAuditId);
-  const messages: ChatMessage[] = currentAuditId ? (liveMessages[currentAuditId] ?? []) : [];
   const status = currentAuditId ? (auditStatus[currentAuditId] ?? currentAudit?.status) : null;
+  const results = currentAuditId ? liveResults[currentAuditId] : undefined;
+  const isRunning = status === 'running' || status === 'pending';
+  const isTerminal = status === 'completed' || status === 'escalate' || status === 'failed';
 
+  // Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
@@ -32,11 +233,18 @@ const MainContent = () => {
     }
   }, [message]);
 
+  // Scroll to bottom when user messages added
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages.length]);
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [userMessages.length]);
 
-  // Clean up WS + poll when switching audits
+  // Reset stage + user messages when audit changes
+  useEffect(() => {
+    setStageIndex(0);
+    setUserMessages([]);
+  }, [currentAuditId]);
+
+  // Clean up WS + poll
   useEffect(() => {
     return () => {
       wsRef.current?.disconnect();
@@ -44,197 +252,129 @@ const MainContent = () => {
     };
   }, [currentAuditId]);
 
-  // Auto-poll when selecting a running audit after page refresh
+  // Auto-poll for running audits after page refresh
   useEffect(() => {
     if (!currentAuditId) return;
-    const isRealAudit = /^[0-9a-f]{8}-[0-9a-f]{4}-/.test(currentAuditId);
-    if (!isRealAudit) return;
-
-    // Use stable status value computed at render time
-    const currentStatus = auditStatus[currentAuditId] ?? currentAudit?.status;
-    if (currentStatus !== 'running' && currentStatus !== 'pending') return;
-    const msgs = liveMessages[currentAuditId] ?? [];
-    if (msgs.length > 0) return;
-
-    push(currentAuditId, { type: 'system', content: 'Reconnecting to running audit…' });
+    const isReal = /^[0-9a-f]{8}-[0-9a-f]{4}-/.test(currentAuditId);
+    if (!isReal) return;
+    const s = auditStatus[currentAuditId] ?? currentAudit?.status;
+    if (s !== 'running' && s !== 'pending') return;
+    if ((liveMessages[currentAuditId] ?? []).length > 0) return;
     startPolling(currentAuditId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentAuditId, status]);
 
   const ts = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  const push = (id: string, msg: Omit<ChatMessage, 'timestamp'>) =>
-    addChatMessage(id, { ...msg, timestamp: ts() });
 
-  // ── Core polling — primary results path (WebSocket is bonus) ────────────────
+  // ── Polling ──────────────────────────────────────────────────────────────
+
   const startPolling = (id: string) => {
     if (pollRef.current) clearInterval(pollRef.current);
 
-    // Show progress messages at fixed intervals while pipeline runs
-    const STAGES = [
-      { delay: 2000, msg: 'Running Governance & Compliance module…' },
-      { delay: 14000, msg: 'Running Fairness & Bias module…' },
-      { delay: 26000, msg: 'Running Security & Privacy module…' },
-      { delay: 38000, msg: 'Running Explainability & Audit Trail module…' },
-      { delay: 50000, msg: 'Running Accuracy & Performance module…' },
-      { delay: 62000, msg: 'Running Council of Experts peer review…' },
-      { delay: 74000, msg: 'Running arbitrator synthesis…' },
-    ];
-    const stageTimers: ReturnType<typeof setTimeout>[] = [];
-    STAGES.forEach(({ delay, msg }) => {
-      stageTimers.push(setTimeout(() => push(id, { type: 'system', content: msg }), delay));
+    // Stage progress timers
+    const DELAYS = [1500, 3000, 4500, 6000, 7500, 9000, 10500];
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    DELAYS.forEach((delay, i) => {
+      timers.push(setTimeout(() => setStageIndex(i), delay));
     });
+    const clearTimers = () => timers.forEach(clearTimeout);
 
-    const clearStages = () => stageTimers.forEach(clearTimeout);
-
-    // Shared done-guard so poll and fetchResults don't both fire
     let done = false;
+
+    const fetchResults = async (attempt = 1): Promise<void> => {
+      try {
+        const r = await auditApi.getAuditResults(id);
+        setAuditResults(id, r);
+      } catch {
+        if (attempt < 12) setTimeout(() => fetchResults(attempt + 1), 3000);
+      }
+    };
 
     const handleTerminal = (termStatus: string) => {
       if (done) return;
       done = true;
       clearInterval(interval);
-      clearStages();
+      clearTimers();
       pollRef.current = null;
+      setStageIndex(7); // all done
       const term = termStatus === 'escalate' ? 'escalate'
         : termStatus === 'completed' ? 'completed' : 'failed';
       updateAuditStatus(id, term as any);
-      push(id, { type: 'system', content: 'Pipeline complete — loading results…' });
       fetchResults();
     };
 
-    const fetchResults = async (attempt = 1): Promise<void> => {
-      try {
-        const results = await auditApi.getAuditResults(id);
-        setAuditResults(id, results);
-        const s = results.overall_summary;
-        push(id, {
-          type: 'decision',
-          content: `Final Decision: ${s.decision}\nComposite score: ${s.final_score} / 100 · Confidence: ${Math.round(s.confidence * 100)}% · Divergence: ${s.divergence}\n${s.notes}`,
-        });
-      } catch (e) {
-        if (attempt < 12) {
-          setTimeout(() => fetchResults(attempt + 1), 3000);
-        } else {
-          push(id, { type: 'system', content: 'Results saved — click Modules tab to view details.' });
-        }
-      }
-    };
-
-    // After arbitrator stage fires, poll more aggressively (every 2s instead of 3s)
-    // for the final 60 seconds of the pipeline
-    stageTimers.push(setTimeout(() => {
+    // Fast poll after arbitrator
+    timers.push(setTimeout(() => {
       if (done) return;
-      const fastInterval = setInterval(async () => {
-        if (done) { clearInterval(fastInterval); return; }
+      const fast = setInterval(async () => {
+        if (done) { clearInterval(fast); return; }
         try {
-          const res = await auditApi.getAuditStatus(id);
-          if (['completed', 'escalate', 'failed'].includes(res.status)) {
-            clearInterval(fastInterval);
-            handleTerminal(res.status);
+          const r = await auditApi.getAuditStatus(id);
+          if (['completed', 'escalate', 'failed'].includes(r.status)) {
+            clearInterval(fast);
+            handleTerminal(r.status);
           }
         } catch { }
       }, 2000);
-      stageTimers.push(fastInterval as any);
-    }, 76000));
+      timers.push(fast as any);
+    }, 8000));
 
     const interval = setInterval(async () => {
       if (done) { clearInterval(interval); return; }
       try {
-        const res = await auditApi.getAuditStatus(id);
-        if (['completed', 'escalate', 'failed'].includes(res.status)) {
-          handleTerminal(res.status);
-        }
+        const r = await auditApi.getAuditStatus(id);
+        if (['completed', 'escalate', 'failed'].includes(r.status)) handleTerminal(r.status);
       } catch { }
     }, 3000);
 
     pollRef.current = interval;
-    // Safety: stop after 15 minutes
-    setTimeout(() => {
-      if (!done) {
-        done = true;
-        clearInterval(interval);
-        clearStages();
-        push(id, { type: 'system', content: 'Audit timed out — refresh to check status.' });
-      }
-    }, 900000);
+    setTimeout(() => { if (!done) { done = true; clearInterval(interval); clearTimers(); } }, 900000);
   };
 
-  // ── File upload + pipeline ─────────────────────────────────────────────────
+  // ── Upload ────────────────────────────────────────────────────────────────
+
   const handleFileUpload = async (files: File[]) => {
     setUploading(true);
     setShowUploadModal(false);
     let auditId = '';
-
     try {
       const created = await auditApi.createAudit({
         name: `Audit - ${new Date().toLocaleDateString()}`,
         files,
       });
       auditId = created.audit_id;
-
       addAudit(apiResponseToAudit(created));
       setCurrentAudit(auditId);
       updateAuditStatus(auditId, 'running');
+      setStageIndex(0);
+      setUserMessages([]);
 
-      push(auditId, {
-        type: 'system',
-        content: `Audit started. ${files.length} file${files.length > 1 ? 's' : ''} uploaded: ${files.map((f) => f.name).join(', ')}`,
-      });
-
-      // Start polling immediately — this is the reliable path
       startPolling(auditId);
 
-      // WebSocket is a bonus: shows live module messages if connection stays open
       const ws = new AuditWebSocket();
       wsRef.current = ws;
       ws.connect(auditId, {
-        onOpen: () =>
-          push(auditId, { type: 'agent', content: 'Live stream connected. Running 5-module evaluation…' }),
-
-        onProgress: (msg) =>
-          push(auditId, { type: 'system', content: msg.message }),
-
         onModuleComplete: (msg) => {
-          const score = msg.result.module_score;
-          const passed = score >= (msg.result.pass_threshold ?? 0.75);
-          push(auditId, {
-            type: 'system',
-            content: `${passed ? '✓' : '⚠'} ${msg.module_name} complete — Score: ${score.toFixed(3)} · ${passed ? 'PASS' : 'FAIL'}`,
-          });
+          const idx = MODULE_ORDER.indexOf(msg.module_id);
+          if (idx >= 0) setStageIndex(idx + 1);
         },
-
-        onPeerReview: (msg) => {
-          if (msg.flag)
-            push(auditId, { type: 'agent', content: `Peer review flag: ${msg.reviewer} → ${msg.reviewed}: ${msg.comment}` });
-        },
-
-        onArbitration: (msg) => {
-          const s = msg.summary;
-          push(auditId, {
-            type: 'decision',
-            content: `Final Decision: ${s.decision}\nComposite score: ${s.final_score} / 100 · Confidence: ${Math.round(s.confidence * 100)}% · Divergence: ${s.divergence}\n${s.notes}`,
-          });
-        },
-
         onAuditComplete: async (msg) => {
           if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
           const term = msg.decision === 'ESCALATE' ? 'escalate' : msg.decision === 'PASS' ? 'completed' : 'failed';
           updateAuditStatus(auditId, term);
+          setStageIndex(7);
           try {
-            const results = await auditApi.getAuditResults(auditId);
-            setAuditResults(auditId, results);
+            const r = await auditApi.getAuditResults(auditId);
+            setAuditResults(auditId, r);
           } catch { }
           ws.disconnect();
         },
-
-        onError: () => { }, // polling handles it
+        onError: () => { },
       });
 
       await auditApi.executeAudit(auditId);
-
     } catch (err) {
-      const text = err instanceof Error ? err.message : 'Upload failed';
-      if (auditId) { push(auditId, { type: 'system', content: `Error: ${text}` }); updateAuditStatus(auditId, 'failed'); }
+      if (auditId) updateAuditStatus(auditId, 'failed');
       console.error(err);
     } finally {
       setUploading(false);
@@ -243,16 +383,24 @@ const MainContent = () => {
 
   const handleDelete = async () => {
     if (!currentAuditId) return;
-    try {
-      await auditApi.deleteAudit(currentAuditId);
-    } catch { }
+    try { await auditApi.deleteAudit(currentAuditId); } catch { }
     removeAudit(currentAuditId);
     setCurrentAudit(null);
   };
 
+  const handleViewDetails = (target: string) => {
+    if (target === 'risks') {
+      setActiveRightTab('risks');
+    } else {
+      setActiveModuleId(target);
+      setActiveRightTab('modules');
+    }
+    openRightPanel();
+  };
+
   const handleSendMessage = () => {
-    if (!message.trim() || !currentAuditId) return;
-    push(currentAuditId, { type: 'user', content: message });
+    if (!message.trim()) return;
+    setUserMessages(prev => [...prev, { type: 'user', content: message, timestamp: ts() }]);
     setMessage('');
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
   };
@@ -261,47 +409,7 @@ const MainContent = () => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); }
   };
 
-  const renderMessage = (msg: ChatMessage, index: number) => {
-    if (msg.type === 'user') return (
-      <div key={index} className="flex justify-end">
-        <div className="max-w-[72%] bg-teal-600 text-white rounded-2xl rounded-tr-sm px-4 py-2.5">
-          <p className="text-sm leading-relaxed">{msg.content}</p>
-          <p className="text-xs mt-1 text-teal-200">{msg.timestamp}</p>
-        </div>
-      </div>
-    );
-    if (msg.type === 'system') return (
-      <div key={index} className="flex justify-center">
-        <div className="bg-blue-50 border border-blue-200 text-blue-800 rounded-lg px-4 py-2 text-xs font-medium max-w-[85%] text-center">
-          {msg.content}
-        </div>
-      </div>
-    );
-    if (msg.type === 'decision') return (
-      <div key={index} className="flex justify-start">
-        <div className="max-w-[82%] bg-yellow-50 border border-yellow-300 rounded-2xl rounded-tl-sm px-4 py-3">
-          <div className="flex items-center gap-2 mb-1">
-            <AlertTriangle className="w-4 h-4 text-yellow-600 flex-shrink-0" />
-            <span className="text-xs font-semibold text-yellow-800">Orchestrator Decision</span>
-          </div>
-          {msg.content.split('\n').map((line, i) => (
-            <p key={i} className={`text-sm leading-relaxed ${i === 0 ? 'font-semibold text-yellow-900' : 'text-yellow-800'}`}>{line}</p>
-          ))}
-          <p className="text-xs mt-1.5 text-yellow-600">{msg.timestamp}</p>
-        </div>
-      </div>
-    );
-    return (
-      <div key={index} className="flex justify-start">
-        <div className="max-w-[80%] bg-white border border-gray-200 rounded-2xl rounded-tl-sm px-4 py-2.5 shadow-sm">
-          {msg.content.split('\n').map((line, i) => (
-            <p key={i} className="text-sm text-gray-800 leading-relaxed">{line}</p>
-          ))}
-          <p className="text-xs mt-1 text-gray-400">{msg.timestamp}</p>
-        </div>
-      </div>
-    );
-  };
+  // ── Empty state ───────────────────────────────────────────────────────────
 
   if (!currentAuditId) {
     return (
@@ -309,17 +417,18 @@ const MainContent = () => {
         <div className="h-full flex items-center justify-center bg-white">
           <div className="text-center max-w-md px-6">
             <div className="w-16 h-16 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-5">
-              <Upload className="w-8 h-8 text-teal-600" />
+              <Shield className="w-8 h-8 text-teal-600" />
             </div>
             <h2 className="text-xl font-semibold text-gray-900 mb-2">Welcome to TrustGuard</h2>
-            <p className="text-sm text-gray-500 mb-6 leading-relaxed">
-              Upload governance policies, model artifacts, security documentation, and compliance records to start an audit.
+            <p className="text-sm text-gray-500 mb-2 leading-relaxed">
+              Upload your AI governance policies, model documentation, security reports, and compliance records.
             </p>
+            <p className="text-xs text-gray-400 mb-6">5 modules · 22 criteria · ISO 42001 · GDPR · SOX 404 · NIST AI RMF</p>
             <button
               onClick={() => setShowUploadModal(true)}
-              className="bg-teal-600 hover:bg-teal-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors inline-flex items-center gap-2"
+              className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-3 rounded-xl text-sm font-medium transition-colors inline-flex items-center gap-2"
             >
-              <Upload className="w-4 h-4" /> Upload Files to Start Audit
+              <Upload className="w-4 h-4" /> Start New Audit
             </button>
           </div>
         </div>
@@ -328,31 +437,30 @@ const MainContent = () => {
     );
   }
 
-  const isRunning = status === 'running' || status === 'pending';
+  // ── Active audit ──────────────────────────────────────────────────────────
 
   return (
     <>
-      <div className="h-full flex flex-col bg-white">
+      <div className="h-full flex flex-col bg-gray-50">
+
+        {/* Top bar */}
         <div className="border-b border-gray-200 px-5 py-3 bg-white flex items-center justify-between flex-shrink-0">
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-sm font-semibold text-gray-900">{currentAudit?.name ?? 'Audit Session'}</h2>
-              {status === 'escalate' && <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full border border-yellow-300"><AlertTriangle className="w-3 h-3" /> ESCALATE</span>}
-              {status === 'completed' && <span className="px-2 py-0.5 bg-green-100 text-green-800 text-xs font-medium rounded-full border border-green-300">PASS</span>}
-              {status === 'failed' && <span className="px-2 py-0.5 bg-red-100 text-red-800 text-xs font-medium rounded-full border border-red-300">FAILED</span>}
+              {status === 'escalate' && <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-800 text-xs font-medium rounded-full border border-amber-300"><AlertTriangle className="w-3 h-3" /> ESCALATE</span>}
+              {status === 'completed' && <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-800 text-xs font-medium rounded-full border border-green-300"><CheckCircle className="w-3 h-3" /> PASS</span>}
+              {status === 'failed' && <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-800 text-xs font-medium rounded-full border border-red-300"><XCircle className="w-3 h-3" /> FAILED</span>}
+              {isRunning && <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-teal-100 text-teal-800 text-xs font-medium rounded-full border border-teal-300"><Loader2 className="w-3 h-3 animate-spin" /> Running</span>}
             </div>
             <p className="text-xs text-gray-400 mt-0.5">
-              {currentAudit?.company ?? 'Unknown'} · 5-module evaluation
-              {isRunning && <span className="ml-2 inline-flex items-center gap-1 text-teal-600"><Loader2 className="w-3 h-3 animate-spin" /> Running…</span>}
-              {uploading && <span className="ml-2 inline-flex items-center gap-1 text-teal-600"><Loader2 className="w-3 h-3 animate-spin" /> Uploading…</span>}
+              {currentAudit?.company ?? 'Uploaded'} · 5-module evaluation
+              {uploading && <span className="ml-2 text-teal-600">Uploading…</span>}
             </p>
           </div>
           <div className="flex items-center gap-2">
-            {(status === 'failed' || status === 'completed' || status === 'escalate') && (
-              <button
-                onClick={handleDelete}
-                className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1 px-2 py-1.5 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
-              >
+            {isTerminal && (
+              <button onClick={handleDelete} className="text-xs text-red-400 hover:text-red-600 flex items-center gap-1 px-2 py-1.5 border border-red-200 rounded-lg hover:bg-red-50 transition-colors">
                 <Trash2 className="w-3.5 h-3.5" /> Delete
               </button>
             )}
@@ -362,49 +470,80 @@ const MainContent = () => {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3 bg-white">
-          {messages.length === 0 && isRunning && (
-            <div className="flex justify-center mt-8">
-              <div className="flex items-center gap-2 text-xs text-gray-400">
-                <Loader2 className="w-3 h-3 animate-spin" /> Pipeline running — results appear automatically…
+        {/* Center content — scrollable */}
+        <div className="flex-1 overflow-y-auto px-5 py-6">
+          <div className="flex flex-col items-center gap-4">
+
+            {/* Running state */}
+            {isRunning && !results && <RunningCard stageIndex={stageIndex} />}
+
+            {/* Results card */}
+            {results && (
+              <ResultsCard
+                results={results}
+                status={status}
+                onViewDetails={handleViewDetails}
+              />
+            )}
+
+            {/* Failed with no results */}
+            {status === 'failed' && !results && (
+              <div className="w-full max-w-xl mx-auto bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
+                <XCircle className="w-10 h-10 text-red-400 mx-auto mb-3" />
+                <p className="text-sm font-semibold text-red-900">Pipeline failed</p>
+                <p className="text-xs text-red-600 mt-1">Check the server terminal for details. Delete this audit and try again.</p>
               </div>
-            </div>
-          )}
-          {messages.map((msg, i) => renderMessage(msg, i))}
-          <div ref={messagesEndRef} />
+            )}
+
+            {/* User Q&A messages */}
+            {userMessages.length > 0 && (
+              <div className="w-full max-w-xl space-y-3 mt-2">
+                <div className="border-t border-gray-200 pt-4">
+                  <p className="text-xs text-gray-400 text-center mb-3">Follow-up questions</p>
+                  {userMessages.map((msg, i) => (
+                    <div key={i} className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'} mb-2`}>
+                      <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${msg.type === 'user'
+                        ? 'bg-teal-600 text-white rounded-tr-sm'
+                        : 'bg-white border border-gray-200 text-gray-800 rounded-tl-sm'
+                        }`}>
+                        {msg.content}
+                        <p className={`text-xs mt-1 ${msg.type === 'user' ? 'text-teal-200' : 'text-gray-400'}`}>{msg.timestamp}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div ref={bottomRef} />
+          </div>
         </div>
 
+        {/* Input bar */}
         <div className="border-t border-gray-200 px-5 py-3 bg-white flex-shrink-0">
-          {/* Smart suggestions */}
           {showSuggestions && currentAuditId && (
             <div className="mb-2 flex flex-wrap gap-1.5">
-              {[
-                ...(liveResults[currentAuditId]
-                  ? [
-                    'What are the highest-priority remediation actions?',
-                    'Which module has the most critical gaps?',
-                    'Summarize the governance findings',
-                    'What GDPR articles need attention?',
-                    'How can we improve the security score?',
-                    'Explain the ESCALATE decision',
-                  ]
-                  : [
-                    'What documents should I upload for a full audit?',
-                    'What does each module evaluate?',
-                    'How are scores calculated?',
-                  ]
-                ),
-              ].map((suggestion) => (
+              {(results
+                ? [
+                  'What are the highest-priority remediation actions?',
+                  'Which module has the most critical gaps?',
+                  'Summarize the governance findings',
+                  'What GDPR articles need attention?',
+                  'How can we improve the security score?',
+                  'Explain the ESCALATE decision',
+                ]
+                : [
+                  'What documents should I upload for a full audit?',
+                  'What does each module evaluate?',
+                  'How are scores calculated?',
+                ]
+              ).map((s) => (
                 <button
-                  key={suggestion}
-                  onClick={() => {
-                    setMessage(suggestion);
-                    setShowSuggestions(false);
-                    textareaRef.current?.focus();
-                  }}
-                  className="text-xs px-2.5 py-1 bg-teal-50 text-teal-700 border border-teal-200 rounded-full hover:bg-teal-100 transition-colors text-left"
+                  key={s}
+                  onClick={() => { setMessage(s); setShowSuggestions(false); textareaRef.current?.focus(); }}
+                  className="text-xs px-2.5 py-1 bg-teal-50 text-teal-700 border border-teal-200 rounded-full hover:bg-teal-100 transition-colors"
                 >
-                  {suggestion}
+                  {s}
                 </button>
               ))}
             </div>
@@ -416,17 +555,13 @@ const MainContent = () => {
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={handleKeyDown}
               onFocus={() => setShowSuggestions(true)}
-              placeholder="Ask about findings, request improvement advice…"
+              placeholder={results ? 'Ask about findings or request improvement advice…' : 'Ask a question about the audit…'}
               className="flex-1 px-3 py-2.5 resize-none outline-none text-sm overflow-hidden bg-transparent rounded-xl"
               style={{ minHeight: '42px', maxHeight: '160px' }}
               rows={1}
             />
             <div className="flex items-center gap-1 flex-shrink-0">
-              <button
-                onClick={() => setShowSuggestions((v) => !v)}
-                className="p-1 text-gray-300 hover:text-teal-500 transition-colors"
-                title="Show suggestions"
-              >
+              <button onClick={() => setShowSuggestions((v) => !v)} className="p-1 text-gray-300 hover:text-teal-500 transition-colors" title="Suggestions">
                 <Sparkles className="w-4 h-4" />
               </button>
               <button
