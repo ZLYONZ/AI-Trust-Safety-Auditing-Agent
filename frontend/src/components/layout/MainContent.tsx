@@ -27,6 +27,8 @@ const STAGE_LABELS = [
   'Security & Privacy',
   'Explainability & Audit Trail',
   'Accuracy & Performance',
+  'Council of Experts Review',
+  'Arbitrator Synthesis',
 ];
 
 // ── Running state card ─────────────────────────────────────────────────────
@@ -39,10 +41,14 @@ const RunningCard = ({ stageIndex }: { stageIndex: number }) => (
       </div>
       <div>
         <p className="text-sm font-semibold text-gray-900">
-          {stageIndex < 5 ? `Running ${STAGE_LABELS[stageIndex]} module…` : stageIndex === 5 ? 'Running Council of Experts review…' : 'Running arbitrator synthesis…'}
+          {stageIndex < 5
+            ? `Running ${STAGE_LABELS[stageIndex]} module…`
+            : stageIndex < 7
+              ? `Running ${STAGE_LABELS[stageIndex]}…`
+              : 'Pipeline complete'}
         </p>
         <p className="text-xs text-gray-400 mt-0.5">
-          {stageIndex < 5 ? `Module ${stageIndex + 1} of 5` : 'Final stage'}
+          {stageIndex < 5 ? `Module ${stageIndex + 1} of 5` : stageIndex < 7 ? 'Final stage' : 'Loading results…'}
         </p>
       </div>
     </div>
@@ -54,25 +60,40 @@ const RunningCard = ({ stageIndex }: { stageIndex: number }) => (
           <div
             className="h-1.5 rounded-full transition-all duration-500"
             style={{
-              background: i < stageIndex ? '#0f766e' : i === stageIndex ? '#5eead4' : '#e5e7eb',
+              background: i < stageIndex || stageIndex >= 5 ? '#0f766e'
+                : i === stageIndex ? '#5eead4'
+                  : '#e5e7eb',
             }}
           />
         </div>
       ))}
     </div>
 
-    {/* Completed modules so far */}
+    {/* Module progress list — all 5 always shown */}
     <div className="space-y-1.5">
-      {STAGE_LABELS.slice(0, Math.min(stageIndex, 5)).map((label, i) => (
-        <div key={label} className="flex items-center gap-2 text-xs text-gray-500">
-          <CheckCircle className="w-3.5 h-3.5 text-teal-500 flex-shrink-0" />
-          <span>{label}</span>
-        </div>
-      ))}
-      {stageIndex < 5 && (
-        <div className="flex items-center gap-2 text-xs text-teal-700 font-medium">
+      {STAGE_LABELS.map((label, i) => {
+        const done = i < stageIndex;
+        const current = i === stageIndex && stageIndex < STAGE_LABELS.length;
+        const pending = !done && !current;
+        return (
+          <div key={label} className={`flex items-center gap-2 text-xs ${done ? 'text-gray-500' : current ? 'text-teal-700 font-medium' : 'text-gray-300'}`}>
+            {done && <CheckCircle className="w-3.5 h-3.5 text-teal-500 flex-shrink-0" />}
+            {current && <Loader2 className="w-3.5 h-3.5 text-teal-500 animate-spin flex-shrink-0" />}
+            {pending && <div className="w-3.5 h-3.5 rounded-full border border-gray-200 flex-shrink-0" />}
+            <span>{label}</span>
+          </div>
+        );
+      })}
+      {stageIndex === 5 && (
+        <div className="flex items-center gap-2 text-xs text-teal-700 font-medium mt-1 pt-1.5 border-t border-gray-100">
           <Loader2 className="w-3.5 h-3.5 text-teal-500 animate-spin flex-shrink-0" />
-          <span>{STAGE_LABELS[stageIndex]}</span>
+          <span>Running Council of Experts review…</span>
+        </div>
+      )}
+      {stageIndex === 6 && (
+        <div className="flex items-center gap-2 text-xs text-teal-700 font-medium mt-1 pt-1.5 border-t border-gray-100">
+          <Loader2 className="w-3.5 h-3.5 text-teal-500 animate-spin flex-shrink-0" />
+          <span>Running arbitrator synthesis…</span>
         </div>
       )}
     </div>
@@ -83,11 +104,9 @@ const RunningCard = ({ stageIndex }: { stageIndex: number }) => (
 
 const ResultsCard = ({
   results,
-  status,
   onViewDetails,
 }: {
   results: AuditResults;
-  status: string | null;
   onViewDetails: (target: string) => void;
 }) => {
   const s = results.overall_summary;
@@ -199,12 +218,140 @@ const ResultsCard = ({
 
 // ── Main component ─────────────────────────────────────────────────────────
 
+
+// ── Criterion Detail Panel ─────────────────────────────────────────────────
+
+const SEVERITY_COLORS: Record<string, string> = {
+  'PASS': 'bg-green-50 border-green-200 text-green-800',
+  'SIGNIFICANT DEFICIENCY': 'bg-amber-50 border-amber-200 text-amber-800',
+  'MATERIAL WEAKNESS': 'bg-red-50 border-red-200 text-red-800',
+  'CONTROL DEFICIENCY': 'bg-gray-50 border-gray-200 text-gray-600',
+};
+
+const CriterionDetailPanel = ({
+  moduleId,
+  criterionId,
+  results,
+  onClose,
+}: {
+  moduleId: string;
+  criterionId: string;
+  results: AuditResults;
+  onClose: () => void;
+}) => {
+  const mod = results.modules[moduleId];
+  const finding = mod?.findings.find((f) => f.criterion_id === criterionId);
+  const modMeta = MODULE_META[moduleId];
+
+  if (!finding) return null;
+
+  const passed = finding.score >= 0.75;
+  const sevStyle = SEVERITY_COLORS[finding.severity] ?? SEVERITY_COLORS['CONTROL DEFICIENCY'];
+
+  const recMap: Record<string, string> = {
+    G: 'Review and update governance documentation. Ensure board-level approval, complete the risk register, and align with ISO 42001 and NIST AI RMF.',
+    F: 'Conduct a bias audit. Implement automated fairness monitoring and establish GDPR Article 22 opt-out mechanisms.',
+    S: 'Strengthen security controls — upgrade encryption, complete adversarial testing, and embed Privacy by Design into the AI development lifecycle.',
+    E: 'Implement SHAP or LIME explainability. Ensure audit trails are immutable (WORM storage) and publish model cards for all production systems.',
+    A: 'Establish automated drift monitoring with defined retraining triggers. Validate all models against held-out test sets.',
+  };
+  const rec = recMap[criterionId.charAt(0)] ?? 'Review this criterion against relevant regulatory requirements.';
+
+  return (
+    <div className="w-full max-w-xl mx-auto bg-white border border-gray-200 rounded-2xl overflow-hidden">
+      {/* Header */}
+      <div className="flex items-start justify-between p-4 border-b border-gray-100">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <span style={{ color: modMeta?.color ?? '#6b7280' }}>{modMeta?.icon}</span>
+            <span className="text-xs text-gray-400">{modMeta?.label ?? moduleId}</span>
+          </div>
+          <h3 className="text-sm font-semibold text-gray-900">{criterionId}: {finding.description}</h3>
+        </div>
+        <button
+          onClick={onClose}
+          className="ml-3 p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+        >
+          <XCircle className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Score */}
+      <div className="px-4 py-3 border-b border-gray-100">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs text-gray-500">Score</span>
+          <div className="flex items-center gap-2">
+            <span className="text-lg font-semibold text-gray-900">{finding.score.toFixed(2)}</span>
+            <span className="text-xs text-gray-400">/ 1.0</span>
+            <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${sevStyle}`}>
+              {finding.severity}
+            </span>
+          </div>
+        </div>
+        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+          <div
+            className="h-full rounded-full transition-all duration-700"
+            style={{
+              width: `${finding.score * 100}%`,
+              background: passed ? '#0f766e' : finding.score >= 0.5 ? '#d97706' : '#dc2626',
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Evidence */}
+      <div className="px-4 py-3 border-b border-gray-100">
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Evidence from Document</p>
+        {finding.evidence?.excerpt && finding.evidence.excerpt !== 'No evidence found in document' ? (
+          <>
+            <blockquote className="bg-gray-50 border-l-4 border-teal-500 rounded-r-lg p-3 text-sm text-gray-700 leading-relaxed italic">
+              "{finding.evidence.excerpt}"
+            </blockquote>
+            {finding.evidence.source_section && finding.evidence.source_section !== 'N/A' && (
+              <p className="text-xs text-gray-400 mt-1.5 ml-1">
+                Source: {finding.evidence.source_section}
+              </p>
+            )}
+          </>
+        ) : (
+          <p className="text-sm text-gray-400 italic">No evidence found in the uploaded document for this criterion.</p>
+        )}
+      </div>
+
+      {/* Why it matters */}
+      <div className="px-4 py-3 border-b border-gray-100">
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Why This Matters</p>
+        <p className="text-sm text-gray-700 leading-relaxed">
+          {finding.score === 0
+            ? 'This criterion has no documented evidence in the uploaded material. Without formal documentation, this area represents an unmitigated compliance risk that could expose the organization to regulatory penalties.'
+            : finding.score <= 0.5
+              ? 'Partial evidence exists but the criterion is only partially met. Key components are missing or insufficiently documented, creating a compliance gap that needs remediation.'
+              : finding.score < 0.75
+                ? 'Evidence is present with minor gaps. The criterion is mostly addressed but some deficiencies remain that should be resolved to fully meet the threshold.'
+                : 'This criterion meets the compliance threshold. Continue maintaining and monitoring this control.'}
+        </p>
+      </div>
+
+      {/* Recommendation */}
+      {!passed && (
+        <div className="px-4 py-3">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Recommendation</p>
+          <p className="text-sm text-teal-700 leading-relaxed bg-teal-50 rounded-lg p-3 border border-teal-100">
+            {rec}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const MainContent = () => {
   const {
     currentAuditId, audits, liveMessages, auditStatus,
     addAudit, updateAuditStatus, setAuditResults,
     setCurrentAudit, removeAudit, liveResults,
     setActiveRightTab, setActiveModuleId, openRightPanel,
+    activeCriterion, setActiveCriterion,
   } = useUIStore();
 
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -285,21 +432,24 @@ const MainContent = () => {
       try {
         const r = await auditApi.getAuditResults(id);
         setAuditResults(id, r);
+        // Update sidebar badge to match actual decision
+        const decision = r.overall_summary?.decision;
+        if (decision === 'FAIL') updateAuditStatus(id, 'failed');
+        if (decision === 'ESCALATE') updateAuditStatus(id, 'escalate');
+        if (decision === 'PASS') updateAuditStatus(id, 'completed');
       } catch {
         if (attempt < 12) setTimeout(() => fetchResults(attempt + 1), 3000);
       }
     };
 
-    const handleTerminal = (termStatus: string) => {
+    const handleTerminal = (termStatus: string): void => {
       if (done) return;
       done = true;
       clearInterval(interval);
       clearTimers();
       pollRef.current = null;
-      setStageIndex(7); // all done
-      const term = termStatus === 'escalate' ? 'escalate'
-        : termStatus === 'completed' ? 'completed' : 'failed';
-      updateAuditStatus(id, term as any);
+      setStageIndex(6); // show all 5 modules + peer review complete
+      // fetchResults will override status with the actual decision (PASS/FAIL/ESCALATE)
       fetchResults();
     };
 
@@ -317,7 +467,7 @@ const MainContent = () => {
         } catch { }
       }, 2000);
       timers.push(fast as any);
-    }, 8000));
+    }, 11000));
 
     const interval = setInterval(async () => {
       if (done) { clearInterval(interval); return; }
@@ -333,7 +483,7 @@ const MainContent = () => {
 
   // ── Upload ────────────────────────────────────────────────────────────────
 
-  const handleFileUpload = async (files: File[]) => {
+  const handleFileUpload = async (files: File[], urls: string[] = [], githubRepos: string[] = []) => {
     setUploading(true);
     setShowUploadModal(false);
     let auditId = '';
@@ -341,6 +491,8 @@ const MainContent = () => {
       const created = await auditApi.createAudit({
         name: `Audit - ${new Date().toLocaleDateString()}`,
         files,
+        urls,
+        githubRepos,
       });
       auditId = created.audit_id;
       addAudit(apiResponseToAudit(created));
@@ -450,7 +602,7 @@ const MainContent = () => {
               <h2 className="text-sm font-semibold text-gray-900">{currentAudit?.name ?? 'Audit Session'}</h2>
               {status === 'escalate' && <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-800 text-xs font-medium rounded-full border border-amber-300"><AlertTriangle className="w-3 h-3" /> ESCALATE</span>}
               {status === 'completed' && <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-800 text-xs font-medium rounded-full border border-green-300"><CheckCircle className="w-3 h-3" /> PASS</span>}
-              {status === 'failed' && <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-800 text-xs font-medium rounded-full border border-red-300"><XCircle className="w-3 h-3" /> FAILED</span>}
+              {status === 'failed' && <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-800 text-xs font-medium rounded-full border border-red-300"><XCircle className="w-3 h-3" /> FAIL</span>}
               {isRunning && <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-teal-100 text-teal-800 text-xs font-medium rounded-full border border-teal-300"><Loader2 className="w-3 h-3 animate-spin" /> Running</span>}
             </div>
             <p className="text-xs text-gray-400 mt-0.5">
@@ -477,11 +629,20 @@ const MainContent = () => {
             {/* Running state */}
             {isRunning && !results && <RunningCard stageIndex={stageIndex} />}
 
+            {/* Criterion detail panel - shown above results when a criterion is selected */}
+            {results && activeCriterion && activeCriterion.moduleId in results.modules && (
+              <CriterionDetailPanel
+                moduleId={activeCriterion.moduleId}
+                criterionId={activeCriterion.criterionId}
+                results={results}
+                onClose={() => setActiveCriterion(null)}
+              />
+            )}
+
             {/* Results card */}
             {results && (
               <ResultsCard
                 results={results}
-                status={status}
                 onViewDetails={handleViewDetails}
               />
             )}

@@ -118,6 +118,7 @@ const DEMO_MESSAGES: ChatMessage[] = [
 interface UIStore {
   leftSidebarOpen: boolean;
   rightPanelOpen: boolean;
+  uploadModalOpen: boolean;
   currentAuditId: string | null;
   activeRightTab: 'overview' | 'modules' | 'risks';
   activeModuleId: string;
@@ -126,6 +127,8 @@ interface UIStore {
   liveMessages: Record<string, ChatMessage[]>;
   auditStatus: Record<string, Audit['status']>;
 
+  openUploadModal: () => void;
+  closeUploadModal: () => void;
   toggleLeftSidebar: () => void;
   toggleRightPanel: () => void;
   openRightPanel: () => void;
@@ -133,6 +136,8 @@ interface UIStore {
   setCurrentAudit: (id: string | null) => void;
   setActiveRightTab: (tab: 'overview' | 'modules' | 'risks') => void;
   setActiveModuleId: (id: string) => void;
+  activeCriterion: { moduleId: string; criterionId: string } | null;
+  setActiveCriterion: (c: { moduleId: string; criterionId: string } | null) => void;
   setAudits: (audits: Audit[]) => void;
   addAudit: (audit: Audit) => void;
   removeAudit: (id: string) => void;
@@ -145,9 +150,11 @@ interface UIStore {
 export const useUIStore = create<UIStore>((set) => ({
   leftSidebarOpen: true,
   rightPanelOpen: false,
+  uploadModalOpen: false,
   currentAuditId: null,
   activeRightTab: 'overview',
   activeModuleId: 'M1_GOVERNANCE',
+  activeCriterion: null,
 
   // Start with the demo audit pre-loaded
   audits: [DEMO_AUDIT],
@@ -155,6 +162,8 @@ export const useUIStore = create<UIStore>((set) => ({
   liveMessages: { [DEMO_ID]: DEMO_MESSAGES },
   auditStatus: { [DEMO_ID]: 'escalate' },
 
+  openUploadModal: () => set({ uploadModalOpen: true }),
+  closeUploadModal: () => set({ uploadModalOpen: false }),
   toggleLeftSidebar: () => set((s) => ({ leftSidebarOpen: !s.leftSidebarOpen })),
   toggleRightPanel: () => set((s) => ({ rightPanelOpen: !s.rightPanelOpen })),
   openRightPanel: () => set({ rightPanelOpen: true }),
@@ -165,10 +174,12 @@ export const useUIStore = create<UIStore>((set) => ({
     rightPanelOpen: id !== null,
     activeRightTab: 'overview',
     activeModuleId: 'M1_GOVERNANCE',
+    activeCriterion: null,
   }),
 
   setActiveRightTab: (tab) => set({ activeRightTab: tab }),
   setActiveModuleId: (id) => set({ activeModuleId: id }),
+  setActiveCriterion: (c) => set({ activeCriterion: c }),
 
   // Replace entire audit list (used by LeftSidebar on mount to sync with DB)
   setAudits: (audits) => set({ audits }),

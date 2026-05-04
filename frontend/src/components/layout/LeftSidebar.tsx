@@ -1,12 +1,14 @@
-import { Plus, Search, CheckCircle, Clock, AlertCircle, AlertTriangle, Loader2, Trash2 } from 'lucide-react';
+import { Plus, Search, CheckCircle, Clock, AlertCircle, AlertTriangle, Loader2, Trash2, Pencil } from 'lucide-react';
 import { useUIStore } from '../../store/uiStore';
 import { auditApi } from '../../services/auditApi';
 import { formatDistanceToNow } from 'date-fns';
 import { useState, useEffect, useRef } from 'react';
 
 const LeftSidebar = () => {
-  const { currentAuditId, audits, setCurrentAudit, removeAudit, setAudits } = useUIStore();
+  const { currentAuditId, audits, setCurrentAudit, removeAudit, setAudits, renameAudit } = useUIStore();
   const [search, setSearch] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState('');
   const loadedRef = useRef(false);
 
   // Load real audits from API once on mount — replace store with server truth
@@ -69,8 +71,11 @@ const LeftSidebar = () => {
     }
   };
 
-  const getStatusLabel = (s: string) =>
-    s === 'in-progress' || s === 'running' ? 'running' : s;
+  const getStatusLabel = (s: string) => {
+    if (s === 'in-progress' || s === 'running') return 'running';
+    if (s === 'failed') return 'fail';
+    return s;
+  };
 
   return (
     <div className="h-full flex flex-col bg-white">
@@ -124,20 +129,50 @@ const LeftSidebar = () => {
             <div className="flex items-start justify-between gap-1 mb-1">
               <div className="flex items-start gap-2 flex-1 min-w-0">
                 {getStatusIcon(audit.status)}
-                <h3 className="font-medium text-xs text-gray-900 truncate flex-1 leading-tight">
-                  {audit.name}
-                </h3>
+                {editingId === audit.id ? (
+                  <input
+                    autoFocus
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    onBlur={() => {
+                      if (editValue.trim()) renameAudit(audit.id, editValue.trim());
+                      setEditingId(null);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') { if (editValue.trim()) renameAudit(audit.id, editValue.trim()); setEditingId(null); }
+                      if (e.key === 'Escape') setEditingId(null);
+                      e.stopPropagation();
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-xs font-medium text-gray-900 border-b border-teal-500 outline-none bg-transparent flex-1 min-w-0"
+                  />
+                ) : (
+                  <h3 className="font-medium text-xs text-gray-900 truncate flex-1 leading-tight">
+                    {audit.name}
+                  </h3>
+                )}
               </div>
-              <span
-                onClick={(e) => handleDelete(e, audit.id)}
-                className="opacity-0 group-hover:opacity-100 p-0.5 text-gray-300 hover:text-red-500 transition-all flex-shrink-0 cursor-pointer"
-                title="Delete"
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => e.key === 'Enter' && handleDelete(e as any, audit.id)}
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </span>
+              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0">
+                <span
+                  onClick={(e) => { e.stopPropagation(); setEditValue(audit.name); setEditingId(audit.id); }}
+                  className="p-0.5 text-gray-300 hover:text-teal-500 cursor-pointer transition-colors"
+                  title="Rename"
+                  role="button"
+                  tabIndex={0}
+                >
+                  <Pencil className="w-3 h-3" />
+                </span>
+                <span
+                  onClick={(e) => handleDelete(e, audit.id)}
+                  className="p-0.5 text-gray-300 hover:text-red-500 cursor-pointer transition-colors"
+                  title="Delete"
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => e.key === 'Enter' && handleDelete(e as any, audit.id)}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </span>
+              </div>
             </div>
             <p className="text-xs text-gray-400 ml-5 mb-1.5">{audit.company}</p>
             <div className="ml-5 flex items-center gap-2">

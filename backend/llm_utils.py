@@ -17,8 +17,8 @@ MAX_RETRIES = 3
 RETRY_DELAY = 2  # seconds between retries
 
 
-# Appended to every system prompt for consistent scoring behaviour
-_SCORING_RULES = """
+# Base scoring rules — always applied
+_SCORING_RULES_STRICT = """
 
 SCORING RULES (follow exactly):
 - Score 1.0: Clear, explicit, documented evidence fully meeting the criterion.
@@ -32,13 +32,35 @@ Base scores strictly on text present in the document — do not infer or assume.
 If the document is a financial filing (10-K, annual report) with no AI governance content, score all criteria 0.0.
 """
 
+# Additional rules appended only for web/GitHub sources
+_SCORING_RULES_WEB_ADDON = """
+SOURCE TYPE NOTE: This document comes from a web page, GitHub repository, or
+informal online source. Apply these adjusted standards:
+- Award 0.25 if the topic is mentioned at all, even briefly or informally.
+- Award 0.5 if there is meaningful discussion, even without formal policy language.
+- Award 0.75 if the criterion is substantially addressed with clear intent.
+- Do NOT score 0.0 just because language is informal or non-legalistic.
+- Look in README sections, CONTRIBUTING.md, SECURITY.md, and docs/ folders.
+"""
 
-def call_llm_json(client, model: str, system_prompt: str, user_prompt: str) -> dict:
+# Default — strict (used for uploaded files)
+_SCORING_RULES = _SCORING_RULES_STRICT
+
+
+def call_llm_json(
+    client,
+    model: str,
+    system_prompt: str,
+    user_prompt: str,
+    web_source: bool = False,
+) -> dict:
     """
     Call the OpenAI chat API and return parsed JSON.
     Uses temperature=0 for deterministic, reproducible scoring.
+    web_source=True applies lenient scoring rules for URLs and GitHub repos.
     Retries up to MAX_RETRIES times on empty or malformed responses.
     """
+    scoring_rules = _SCORING_RULES_STRICT + (_SCORING_RULES_WEB_ADDON if web_source else "")
     last_error: Exception | None = None
     raw: str = ""
 
@@ -49,7 +71,7 @@ def call_llm_json(client, model: str, system_prompt: str, user_prompt: str) -> d
                 temperature=0,       # deterministic output — same doc = same score
                 seed=42,             # additional reproducibility where supported
                 messages=[
-                    {"role": "system", "content": system_prompt + _SCORING_RULES},
+                    {"role": "system", "content": system_prompt + scoring_rules},
                     {"role": "user",   "content": user_prompt},
                 ],
                 # Ask for JSON explicitly when supported

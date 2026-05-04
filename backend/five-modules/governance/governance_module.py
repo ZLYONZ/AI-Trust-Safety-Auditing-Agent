@@ -15,10 +15,13 @@ class GovernanceModule:
     def run(self, document_text):
         prompt = build_prompt(document_text, GOVERNANCE_CRITERIA)
 
+        is_web = any(marker in document_text[:500]
+                     for marker in ["=== Source URL:", "=== GitHub Repository:", "=== File: README"])
         data = call_llm_json(
             client, MODEL,
             system_prompt="You are an AI governance and compliance auditor. Return ONLY JSON.",
             user_prompt=prompt,
+            web_source=is_web,
         )
 
         findings = []

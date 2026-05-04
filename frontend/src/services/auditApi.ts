@@ -7,6 +7,8 @@ const API_BASE_URL = 'http://localhost:8000/api';
 export interface AuditCreateRequest {
     name: string;
     files: File[];
+    urls?: string[];
+    githubRepos?: string[];
 }
 
 export interface AuditCreateResponse {
@@ -122,6 +124,9 @@ export const auditApi = {
         const formData = new FormData();
         formData.append('name', data.name);
         data.files.forEach(file => formData.append('files', file));
+        // Send as JSON strings — backend parses with json.loads()
+        formData.append('urls', JSON.stringify(data.urls ?? []));
+        formData.append('github_repos', JSON.stringify(data.githubRepos ?? []));
 
         const res = await fetch(`${API_BASE_URL}/audits`, {
             method: 'POST',

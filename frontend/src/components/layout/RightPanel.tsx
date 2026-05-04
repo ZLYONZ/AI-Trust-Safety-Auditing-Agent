@@ -131,10 +131,12 @@ const ModulesTab = ({
   results,
   activeModuleId,
   setActiveModuleId,
+  onSelectCriterion,
 }: {
   results: AuditResults;
   activeModuleId: string;
   setActiveModuleId: (id: string) => void;
+  onSelectCriterion: (moduleId: string, criterionId: string) => void;
 }) => {
   const moduleIds = Object.keys(results.modules);
   const currentId = moduleIds.includes(activeModuleId) ? activeModuleId : moduleIds[0];
@@ -178,7 +180,11 @@ const ModulesTab = ({
             </div>
 
             {current.findings.map((f) => (
-              <div key={f.criterion_id} className="border border-gray-200 rounded-lg p-3 bg-white">
+              <div
+                key={f.criterion_id}
+                className="border border-gray-200 rounded-lg p-3 bg-white cursor-pointer hover:border-teal-300 hover:bg-teal-50/30 transition-colors group"
+                onClick={() => onSelectCriterion(currentId, f.criterion_id)}
+              >
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-gray-900">{f.criterion_id}: {f.description}</p>
@@ -200,6 +206,9 @@ const ModulesTab = ({
                     {f.severity}
                   </p>
                 )}
+                <p className="text-xs text-teal-500 mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                  Click to view full details →
+                </p>
               </div>
             ))}
           </>
@@ -231,29 +240,99 @@ const RisksTab = ({ results }: { results: AuditResults }) => {
   return (
     <div className="p-3 space-y-3">
       {failingFindings.map(({ finding, mod }, i) => {
-        const isSig = finding.severity.includes('SIGNIFICANT') || finding.severity.includes('MATERIAL');
+        const isMaterial = finding.severity.includes('MATERIAL');
+        const isSig = finding.severity.includes('SIGNIFICANT');
+        const isDeficiency = finding.severity.includes('CONTROL') || finding.severity.includes('DEFICIENCY');
+        const noEvidence = !finding.evidence?.excerpt || finding.evidence.excerpt === 'No evidence found in document';
+
+        // Severity label and style
+        const sevLabel = isMaterial ? 'Material Weakness'
+          : isSig ? 'Significant Deficiency'
+            : isDeficiency ? 'Control Deficiency'
+              : finding.severity || 'Below Threshold';
+
+        const sevStyle = isMaterial ? 'bg-red-100 text-red-700 border-red-200'
+          : isSig ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
+            : 'bg-gray-100 text-gray-600 border-gray-200';
+
+        const icon = isMaterial || isSig
+          ? <AlertTriangle className="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5" />
+          : <AlertCircle className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" />;
+
+        // Module display name
+        const modMeta = MODULE_META[mod.module_id];
+        const modName = modMeta?.short ?? mod.module_id;
+
+        // Risk reason based on score band
+        const riskReason = noEvidence
+          ? 'No supporting evidence was found in the uploaded document for this criterion. The organization may not have documented this control, or the documentation was not included in the upload.'
+          : finding.score === 0.25
+            ? 'Minimal evidence exists — the criterion is largely unaddressed. Only faint indications of compliance were found.'
+            : finding.score === 0.5
+              ? 'Partial evidence found. The criterion is only partially met — key components are missing or insufficiently documented.'
+              : 'Evidence present but with gaps. The criterion is mostly met but minor deficiencies remain that should be addressed.';
+
+        // Recommendation based on criterion ID prefix
+        const recMap: Record<string, string> = {
+          'G': 'Review and update governance documentation. Ensure board-level approval, complete the risk register, and align with ISO 42001 and NIST AI RMF requirements.',
+          'F': 'Conduct a bias audit using Fairlearn or AIF360. Implement automated fairness monitoring and establish GDPR Article 22 opt-out mechanisms for affected data subjects.',
+          'S': 'Strengthen security controls — upgrade encryption standards, complete adversarial robustness testing, and embed Privacy by Design into the AI development lifecycle.',
+          'E': 'Implement SHAP or LIME explainability for all automated decisions. Ensure audit trails are immutable (WORM storage), and publish model cards for all production systems.',
+          'A': 'Establish automated drift monitoring with defined retraining triggers. Validate all production models against held-out test sets and connect correction requests to retraining workflows.',
+        };
+        const prefix = finding.criterion_id.charAt(0).toUpperCase();
+        const recommendation = recMap[prefix] ?? 'Review this criterion against the relevant regulatory requirements and update documentation accordingly.';
+
         return (
-          <div key={i} className="border border-gray-200 rounded-lg p-3 bg-white">
-            <div className="flex items-start gap-2 mb-2">
-              {isSig
-                ? <AlertTriangle className="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5" />
-                : <AlertCircle className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" />
-              }
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-2 flex-wrap">
-                  <p className="text-sm font-semibold text-gray-900 leading-tight">{finding.criterion_id}: {finding.description}</p>
-                  <span className={`text-xs px-1.5 py-0.5 rounded border font-medium flex-shrink-0 ${getSeverityStyle(finding.severity)}`}>
-                    {finding.severity.split(' ').map((w) => w[0]).join('.')}
-                  </span>
+          <div key={i} className="border border-gray-200 rounded-xl bg-white overflow-hidden">
+            {/* Header */}
+            <div className="p-3 pb-2">
+              <div className="flex items-start gap-2">
+                {icon}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2 flex-wrap mb-1">
+                    <p className="text-sm font-semibold text-gray-900 leading-tight">
+                      {finding.criterion_id}: {finding.description}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${sevStyle}`}>
+                      {sevLabel}
+                    </span>
+                    <span className="text-xs text-gray-400">{modName} · Score {finding.score.toFixed(2)}</span>
+                  </div>
                 </div>
-                <p className="text-xs text-gray-400 mt-0.5">Score: {finding.score.toFixed(2)} · {mod.module_id}</p>
+              </div>
+
+              {/* Score bar */}
+              <div className="mt-2.5 ml-6">
+                <ScoreBar score={finding.score} color={finding.score < 0.5 ? '#dc2626' : '#d97706'} />
               </div>
             </div>
-            {finding.evidence?.excerpt && finding.evidence.excerpt !== 'No evidence found in document' && (
-              <p className="text-xs text-gray-600 leading-relaxed mb-2 pl-6">{finding.evidence.excerpt.slice(0, 150)}…</p>
+
+            {/* Evidence */}
+            {!noEvidence && (
+              <div className="mx-3 mb-2 p-2.5 bg-gray-50 rounded-lg border border-gray-100">
+                <p className="text-xs font-medium text-gray-500 mb-1">Evidence found</p>
+                <p className="text-xs text-gray-600 leading-relaxed italic">
+                  "{finding.evidence.excerpt.slice(0, 200)}{finding.evidence.excerpt.length > 200 ? '…' : ''}"
+                </p>
+                {finding.evidence.source_section && finding.evidence.source_section !== 'N/A' && (
+                  <p className="text-xs text-gray-400 mt-1">— {finding.evidence.source_section}</p>
+                )}
+              </div>
             )}
-            <div className="pl-6">
-              <ScoreBar score={finding.score} color={finding.score < 0.5 ? '#dc2626' : '#d97706'} />
+
+            {/* Why it's a risk */}
+            <div className="mx-3 mb-2 p-2.5 bg-amber-50 rounded-lg border border-amber-100">
+              <p className="text-xs font-medium text-amber-800 mb-1">Why this is a risk</p>
+              <p className="text-xs text-amber-700 leading-relaxed">{riskReason}</p>
+            </div>
+
+            {/* Recommendation */}
+            <div className="mx-3 mb-3 p-2.5 bg-teal-50 rounded-lg border border-teal-100">
+              <p className="text-xs font-medium text-teal-800 mb-1">Recommendation</p>
+              <p className="text-xs text-teal-700 leading-relaxed">{recommendation}</p>
             </div>
           </div>
         );
@@ -287,7 +366,7 @@ const RightPanel = () => {
   const {
     currentAuditId, audits, liveResults, auditStatus,
     closeRightPanel, activeRightTab, setActiveRightTab,
-    activeModuleId, setActiveModuleId, setAuditResults, renameAudit,
+    activeModuleId, setActiveModuleId, setAuditResults, renameAudit, setActiveCriterion,
   } = useUIStore();
 
   const [editingTitle, setEditingTitle] = useState(false);
@@ -569,7 +648,14 @@ const RightPanel = () => {
           <OverviewTab results={results} setActiveTab={setActiveRightTab} setActiveModuleId={setActiveModuleId} />
         )}
         {results && activeRightTab === 'modules' && (
-          <ModulesTab results={results} activeModuleId={activeModuleId} setActiveModuleId={setActiveModuleId} />
+          <ModulesTab
+            results={results}
+            activeModuleId={activeModuleId}
+            setActiveModuleId={setActiveModuleId}
+            onSelectCriterion={(moduleId, criterionId) => {
+              setActiveCriterion({ moduleId, criterionId });
+            }}
+          />
         )}
         {results && activeRightTab === 'risks' && (
           <RisksTab results={results} />

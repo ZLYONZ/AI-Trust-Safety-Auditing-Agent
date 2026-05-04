@@ -82,7 +82,7 @@ The `.env` file should contain:
 OPENAI_API_KEY=sk-your-key-here
 ```
 
-> **Note:** The platform uses `gpt-4.1-mini` by default. Make sure your API key has access to this model. A full 5-module audit costs approximately $0.15–$0.40 in API credits.
+> **Note:** The platform uses `gpt-5.4-mini` by default. Make sure your API key has access to this model. A full 5-module audit costs approximately $0.15–$0.40 in API credits.
 
 ### 5. Start the backend server
 
@@ -207,7 +207,7 @@ Each person must run the **backend locally** on their own machine. `localhost:80
 |-------|-----------|
 | Frontend | React 18, TypeScript, Tailwind CSS, Zustand |
 | Backend | Python 3.12, FastAPI, Uvicorn, SQLite |
-| LLM | OpenAI `gpt-4.1-mini` (temperature=0, seed=42) |
+| LLM | OpenAI `gpt-5.4-mini` (temperature=0, seed=42) |
 | File parsing | pdfplumber, python-docx, openpyxl |
 | Real-time | WebSocket (progress) + REST polling (results) |
 

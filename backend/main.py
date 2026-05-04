@@ -61,7 +61,7 @@ AuditOrchestrator = None  # placeholder — replaced by lazy import at runtime
 
 # ── Internal imports ────────────────────────────────────────────────────────
 import database as db
-from file_parser import extract_text_from_files
+from file_parser import extract_text_from_files  # extract_text_from_sources imported lazily in _run_pipeline
 
 
 # ── Lifespan ────────────────────────────────────────────────────────────────
@@ -155,23 +155,46 @@ def _now() -> str:
 @app.post("/api/audits", response_model=AuditResponse)
 async def create_audit(
     name: str = Form(...),
-    files: list[UploadFile] = File(...),
+    files: list[UploadFile] = File(default=[]),
+    urls: str = Form(default="[]"),          # JSON-encoded string array from frontend
+    github_repos: str = Form(default="[]"),  # JSON-encoded string array from frontend
 ):
     """
-    Accept uploaded documents and create a new audit session.
-    Files are stored in memory for now; add disk/S3 persistence as needed.
+    Accept uploaded files, URLs, and/or GitHub repos and create a new audit session.
+    The frontend sends urls/github_repos as JSON.stringify([...]) in FormData.
     """
+    import json as _json
+
+    def _parse_json_list(val: str) -> list:
+        """Parse a JSON-encoded list, or wrap a bare string in a list."""
+        if not val or val == "[]":
+            return []
+        try:
+            result = _json.loads(val)
+            return result if isinstance(result, list) else [result]
+        except Exception:
+            # Bare string fallback (e.g. "owner/repo" not JSON-encoded)
+            return [v.strip() for v in val.split(",") if v.strip()]
+
+    parsed_urls  = _parse_json_list(urls)
+    parsed_repos = _parse_json_list(github_repos)
+
     file_meta = [
         {"name": f.filename or "unnamed", "size": f.size or 0}
         for f in files
+    ] + [
+        {"name": f"url:{u}", "size": 0} for u in parsed_urls
+    ] + [
+        {"name": f"github:{r}", "size": 0} for r in parsed_repos
     ]
-    audit = db.create_audit(name=name, files=file_meta)
 
-    # Store raw bytes on the audit record so /execute can read them.
-    # In production, write to disk or object storage here instead.
-    _file_store[audit["audit_id"]] = [
-        (await f.read(), f.filename or "unnamed") for f in files
-    ]
+    audit = db.create_audit(name=name, files=file_meta)
+    audit_id = audit["audit_id"]
+
+    file_bytes = [(await f.read(), f.filename or "unnamed") for f in files]
+
+    _store_sources(audit_id, file_bytes, parsed_urls, parsed_repos)
+    print(f"[create_audit] files={len(file_bytes)}, urls={parsed_urls}, repos={parsed_repos}")
 
     return audit
 
@@ -215,8 +238,9 @@ def get_audit_results(audit_id: str):
     results = db.get_audit_results(audit_id)
     if results is None:
         if audit["status"] in ("pending", "running"):
-            raise HTTPException(404, "Results not ready yet.")
-        raise HTTPException(404, f"No results found for audit '{audit_id}'.")
+            raise HTTPException(404, "Results not ready yet — audit still running.")
+        # Still running or genuinely no results
+        raise HTTPException(404, f"No results saved for audit '{audit_id}'. Check server logs.")
     return results
 
 
@@ -232,7 +256,7 @@ def delete_audit(audit_id: str):
     deleted = db.delete_audit(audit_id)
     if not deleted:
         raise HTTPException(404, f"Audit '{audit_id}' not found.")
-    _file_store.pop(audit_id, None)
+    _delete_sources(audit_id)
     return DeleteResponse(deleted=True)
 
 
@@ -268,10 +292,63 @@ async def ws_audit(audit_id: str, websocket: WebSocket):
         manager.disconnect(audit_id, websocket)
 
 
+# ── Source extraction helper ─────────────────────────────────────────────────
+
+def _extract_sources(
+    files: list[tuple[bytes, str]],
+    urls: list[str],
+    github_repos: list[str],
+) -> str:
+    """Lazy import wrapper so file_parser is not imported at startup."""
+    from file_parser import extract_text_from_sources  # type: ignore[import]
+    return extract_text_from_sources(files, urls, github_repos)
+
+
 # ── In-memory file store (replace with disk/S3 in production) ────────────────
 
-# { audit_id: [(bytes, filename), ...] }
-_file_store: dict[str, list[tuple[bytes, str]]] = {}
+# ── Disk-based source store (survives --reload restarts) ─────────────────────
+# Stored as JSON sidecar files next to the SQLite DB.
+# File bytes are written as individual files in a temp folder.
+
+import tempfile, pickle
+_STORE_DIR = BASE_DIR / ".audit_sources"
+_STORE_DIR.mkdir(exist_ok=True)
+
+
+def _store_sources(audit_id: str, file_bytes: list, urls: list, repos: list) -> None:
+    """Persist sources to disk so they survive --reload."""
+    payload = {"urls": urls, "repos": repos}
+    (_STORE_DIR / f"{audit_id}.json").write_text(
+        __import__("json").dumps(payload), encoding="utf-8"
+    )
+    # Store file bytes as pickle (binary safe)
+    if file_bytes:
+        (_STORE_DIR / f"{audit_id}.pkl").write_bytes(pickle.dumps(file_bytes))
+
+
+def _load_sources(audit_id: str) -> tuple[list, list, list]:
+    """Load sources from disk. Returns (file_bytes, urls, repos)."""
+    meta_path  = _STORE_DIR / f"{audit_id}.json"
+    bytes_path = _STORE_DIR / f"{audit_id}.pkl"
+
+    urls, repos = [], []
+    if meta_path.exists():
+        data  = __import__("json").loads(meta_path.read_text(encoding="utf-8"))
+        urls  = data.get("urls", [])
+        repos = data.get("repos", [])
+
+    file_bytes = []
+    if bytes_path.exists():
+        file_bytes = pickle.loads(bytes_path.read_bytes())
+
+    return file_bytes, urls, repos
+
+
+def _delete_sources(audit_id: str) -> None:
+    for ext in (".json", ".pkl"):
+        p = _STORE_DIR / f"{audit_id}{ext}"
+        if p.exists():
+            p.unlink()
 
 
 # ── Pipeline background task ──────────────────────────────────────────────────
@@ -293,13 +370,43 @@ async def _run_pipeline(audit_id: str) -> None:
         await emit({"type": "progress", "stage": "uploading",
                     "message": "Parsing uploaded documents…"})
 
-        files = _file_store.get(audit_id, [])
-        if not files:
-            raise RuntimeError("No files found for this audit. Upload files first.")
+        file_bytes, urls, github_repos = _load_sources(audit_id)
+        print(f"[pipeline] Loaded sources: files={len(file_bytes)}, urls={urls}, repos={github_repos}")
+
+        if not file_bytes and not urls and not github_repos:
+            raise RuntimeError("No sources found for this audit. Upload files, URLs, or GitHub repos first.")
 
         document_text = await asyncio.get_event_loop().run_in_executor(
-            None, extract_text_from_files, files
+            None, lambda: _extract_sources(file_bytes, urls, github_repos)
         )
+
+        if not document_text.strip():
+            raise RuntimeError(
+                "No text could be extracted. Possible causes: "
+                "(1) URL returned 403 — site blocks bots, try a different URL or upload the page as a .txt file. "
+                "(2) GitHub repo has no README/docs — check the repo contains documentation. "
+                "(3) GitHub rate limit — add GITHUB_TOKEN to your .env file. "
+                "(4) File could not be parsed."
+            )
+
+        char_count = len(document_text)
+        print(f"[pipeline] Extracted {char_count:,} chars from "
+              f"{len(file_bytes)} files, {len(urls)} URLs, {len(github_repos)} repos")
+        # Preview first 500 chars so we can verify content quality
+        print(f"[pipeline] Content preview: {document_text[:500]!r}")
+
+        if char_count < 200:
+            raise RuntimeError(
+                f"Extracted text is too short ({char_count} chars). "
+                "The URL may require authentication, block bots, or return JavaScript-only content. "
+                "Try a direct link to a PDF or plain text file instead."
+            )
+
+        # Truncate to ~400k chars to stay within gpt-5.4-mini context window
+        MAX_CHARS = 400_000
+        if char_count > MAX_CHARS:
+            document_text = document_text[:MAX_CHARS]
+            print(f"[pipeline] Truncated to {MAX_CHARS:,} chars to fit context window")
 
         # ── 2. Lazy-import and instantiate orchestrator ─────────────────────
         # Import here (not at startup) so all sys.path additions are in effect.
@@ -399,8 +506,9 @@ async def _run_pipeline(audit_id: str) -> None:
         db.save_audit_results(audit_id, final_results)
 
         terminal_status = (
-            "escalate" if summary["decision"] == "ESCALATE"
-            else "completed"  # PASS or FAIL both mean audit ran successfully
+            "escalate"  if summary["decision"] == "ESCALATE"
+            else "failed"    if summary["decision"] == "FAIL"
+            else "completed"  # PASS
         )
         db.update_audit_status(audit_id, terminal_status)
 
@@ -415,15 +523,31 @@ async def _run_pipeline(audit_id: str) -> None:
     except Exception as exc:
         import traceback
         db.update_audit_status(audit_id, "failed")
-        # Send the actual exception type + message so the frontend can display it
         error_text = f"{type(exc).__name__}: {exc}"
+        print(f"[pipeline ERROR] {error_text}")
+        traceback.print_exc()
+        # Save a minimal result so the frontend can fetch something
+        db.save_audit_results(audit_id, {
+            "audit_id": audit_id,
+            "audit_name": (db.get_audit(audit_id) or {}).get("name", audit_id),
+            "status": "failed",
+            "error": error_text,
+            "overall_summary": {
+                "final_score": 0,
+                "confidence": 0,
+                "decision": "FAIL",
+                "divergence": "none",
+                "notes": f"Pipeline failed: {error_text}",
+            },
+            "modules": {},
+            "peer_reviews": [],
+            "key_findings": [f"Pipeline error: {error_text}"],
+        })
         await emit({
             "type": "error",
             "stage": "error",
             "message": error_text,
         })
-        # Log full traceback to server terminal
-        traceback.print_exc()
 
 
 # ── Orchestrator helper functions ─────────────────────────────────────────────
@@ -475,7 +599,7 @@ def _run_arbitration(
         # Fallback calculation matching the notebook's logic
         avg = sum(vals) / len(vals) if vals else 0
         avg_100 = round(avg * 100, 1)
-        confidence = round(1.0 - spread, 3)
+        confidence = round(1.0 - spread, 2)
         if divergence == "critical":
             decision = "ESCALATE"
             notes = "Critical divergence across modules → mandatory human review"
