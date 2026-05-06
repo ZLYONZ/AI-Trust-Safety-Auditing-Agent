@@ -11,6 +11,7 @@ const MODULE_META: Record<string, { label: string; short: string; icon: JSX.Elem
   M3_SECURITY: { label: 'Security & Privacy', short: 'Security', icon: <Lock className="w-3.5 h-3.5" />, bar: '#1d4ed8', badgeColor: 'text-blue-700 bg-blue-100' },
   M4_EXPLAINABILITY: { label: 'Explainability & Audit Trail', short: 'Transparency', icon: <Eye className="w-3.5 h-3.5" />, bar: '#c2410c', badgeColor: 'text-orange-700 bg-orange-100' },
   M5_ACCURACY: { label: 'Accuracy & Performance', short: 'Performance', icon: <Gauge className="w-3.5 h-3.5" />, bar: '#15803d', badgeColor: 'text-green-700 bg-green-100' },
+  M6_FINANCIAL: { label: 'Financial Controls', short: 'Financial', icon: <Shield className="w-3.5 h-3.5" />, bar: '#7c3aed', badgeColor: 'text-purple-700 bg-purple-100' },
 };
 
 // Fallback for modules the server returns with different IDs

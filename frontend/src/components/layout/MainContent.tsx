@@ -1,6 +1,6 @@
 import {
   Upload, Send, Loader2, AlertTriangle, Trash2, Sparkles,
-  CheckCircle, XCircle, Shield, Scale, Lock, Eye, Gauge,
+  CheckCircle, XCircle, Clock, Shield, Scale, Lock, Eye, Gauge,
   ChevronRight,
 } from 'lucide-react';
 import { useUIStore, apiResponseToAudit, type ChatMessage } from '../../store/uiStore';
@@ -17,9 +17,10 @@ const MODULE_META: Record<string, { label: string; icon: JSX.Element; color: str
   M3_SECURITY: { label: 'Security', icon: <Lock className="w-3.5 h-3.5" />, color: '#1d4ed8', bar: '#1d4ed8' },
   M4_EXPLAINABILITY: { label: 'Transparency', icon: <Eye className="w-3.5 h-3.5" />, color: '#c2410c', bar: '#c2410c' },
   M5_ACCURACY: { label: 'Performance', icon: <Gauge className="w-3.5 h-3.5" />, color: '#15803d', bar: '#15803d' },
+  M6_FINANCIAL: { label: 'Financial', icon: <Shield className="w-3.5 h-3.5" />, color: '#7c3aed', bar: '#7c3aed' },
 };
 
-const MODULE_ORDER = ['M1_GOVERNANCE', 'M2_FAIRNESS', 'M3_SECURITY', 'M4_EXPLAINABILITY', 'M5_ACCURACY'];
+const MODULE_ORDER = ['M1_GOVERNANCE', 'M2_FAIRNESS', 'M3_SECURITY', 'M4_EXPLAINABILITY', 'M5_ACCURACY', 'M6_FINANCIAL'];
 
 const STAGE_LABELS = [
   'Governance & Compliance',
@@ -27,6 +28,7 @@ const STAGE_LABELS = [
   'Security & Privacy',
   'Explainability & Audit Trail',
   'Accuracy & Performance',
+  'Financial Controls',
   'Council of Experts Review',
   'Arbitrator Synthesis',
 ];
@@ -305,7 +307,7 @@ const CriterionDetailPanel = ({
         {finding.evidence?.excerpt && finding.evidence.excerpt !== 'No evidence found in document' ? (
           <>
             <blockquote className="bg-gray-50 border-l-4 border-teal-500 rounded-r-lg p-3 text-sm text-gray-700 leading-relaxed italic">
-              "{finding.evidence.excerpt}"
+              {finding.evidence.excerpt}
             </blockquote>
             {finding.evidence.source_section && finding.evidence.source_section !== 'N/A' && (
               <p className="text-xs text-gray-400 mt-1.5 ml-1">
@@ -419,7 +421,7 @@ const MainContent = () => {
     if (pollRef.current) clearInterval(pollRef.current);
 
     // Stage progress timers
-    const DELAYS = [1500, 3000, 4500, 6000, 7500, 9000, 10500];
+    const DELAYS = [1500, 3000, 4500, 6000, 7500, 9000, 10500, 12000];
     const timers: ReturnType<typeof setTimeout>[] = [];
     DELAYS.forEach((delay, i) => {
       timers.push(setTimeout(() => setStageIndex(i), delay));
@@ -442,7 +444,7 @@ const MainContent = () => {
       }
     };
 
-    const handleTerminal = (termStatus: string): void => {
+    const handleTerminal = (_termStatus: string): void => {
       if (done) return;
       done = true;
       clearInterval(interval);

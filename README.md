@@ -16,7 +16,7 @@ AI-Trust-Safety-Auditing-Agent/
 │   ├── llm_utils.py              # Shared LLM call helper (temperature=0, retries)
 │   ├── requirements.txt
 │   ├── .env                      # Your OpenAI API key (not committed)
-│   └── five-modules/
+│   └── modules/
 │       ├── governance/           # Module 1 — ISO 42001, NIST AI RMF, SOX 404
 │       ├── fairness/             # Module 2 — GDPR Art. 9/22, CCPA
 │       ├── security/             # Module 3 — GDPR Art. 25, encryption, RBAC

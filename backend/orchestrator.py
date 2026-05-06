@@ -27,6 +27,7 @@ from fairness_module      import FairnessModule      # type: ignore[import]
 from security_module      import SecurityModule      # type: ignore[import]
 from transparency_module  import TransparencyModule  # type: ignore[import]
 from performance_module   import PerformanceModule   # type: ignore[import]
+from financial_module     import FinancialModule     # type: ignore[import]
 
 client = OpenAI()   # reads OPENAI_API_KEY from environment
 
@@ -84,6 +85,7 @@ class AuditOrchestrator:
         self.security      = SecurityModule()
         self.transparency  = TransparencyModule()
         self.performance   = PerformanceModule()
+        self.financial     = FinancialModule()
 
     # ── Stage 1: Domain modules ───────────────────────────────────────────────
 
@@ -103,6 +105,7 @@ class AuditOrchestrator:
             ("security",     "M3_SECURITY",       "Security & Privacy"),
             ("transparency", "M4_EXPLAINABILITY", "Explainability & Audit Trail"),
             ("performance",  "M5_ACCURACY",       "Accuracy & Performance"),
+            ("financial",    "M6_FINANCIAL",      "Financial Controls"),
         ]:
             print(f"Running {label} Module…")
             result = getattr(self, attr).run(document_text)
@@ -150,7 +153,7 @@ class AuditOrchestrator:
 
             try:
                 resp = client.chat.completions.create(
-                    model="gpt-5.4-mini",
+                    model="gpt-4.1-mini",
                     temperature=0,
                     seed=42,
                     messages=[
@@ -211,7 +214,7 @@ class AuditOrchestrator:
 
         try:
             resp = client.chat.completions.create(
-                model="gpt-5.4-mini",
+                model="gpt-4.1-mini",
                 temperature=0,
                 seed=42,
                 messages=[

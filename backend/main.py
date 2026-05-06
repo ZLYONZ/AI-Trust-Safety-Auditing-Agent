@@ -44,8 +44,8 @@ except ImportError:
 
 # ── Add module paths (mirrors Colab sys.path.append calls) ─────────────────
 BASE_DIR = Path(__file__).parent
-for sub in ("governance", "fairness", "security", "transparency", "performance"):
-    p = BASE_DIR / "five-modules" / sub
+for sub in ("governance", "fairness", "security", "transparency", "performance", "financial"):
+    p = BASE_DIR / "modules" / sub
     if p.exists() and str(p) not in sys.path:
         sys.path.insert(0, str(p))
 
@@ -402,7 +402,7 @@ async def _run_pipeline(audit_id: str) -> None:
                 "Try a direct link to a PDF or plain text file instead."
             )
 
-        # Truncate to ~400k chars to stay within gpt-5.4-mini context window
+        # Truncate to ~400k chars to stay within gpt-4.1-mini context window
         MAX_CHARS = 400_000
         if char_count > MAX_CHARS:
             document_text = document_text[:MAX_CHARS]
@@ -416,7 +416,7 @@ async def _run_pipeline(audit_id: str) -> None:
             raise RuntimeError(
                 f"Failed to import AuditOrchestrator: {import_err}. "
                 "Check that orchestrator.py is in backend/ and all "
-                "five-modules subdirectories are present and correct."
+                "modules subdirectories are present and correct."
             ) from import_err
         orchestrator = _OC()
 
@@ -427,6 +427,7 @@ async def _run_pipeline(audit_id: str) -> None:
             ("security",      "M3_SECURITY",        "Security & Privacy"),
             ("transparency",  "M4_EXPLAINABILITY",  "Explainability & Audit Trail"),
             ("performance",   "M5_ACCURACY",        "Accuracy & Performance"),
+            ("financial",     "M6_FINANCIAL",       "Financial Controls"),
         ]
 
         module_results: dict[str, Any] = {}

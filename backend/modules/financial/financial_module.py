@@ -1,0 +1,61 @@
+from openai import OpenAI
+from llm_utils import call_llm_json
+
+from financial_rules import FINANCIAL_CRITERIA
+from financial_prompt import build_prompt
+from financial_schema import FinancialFinding, FinancialResult, Evidence
+from financial_scoring import calculate_module_score, determine_severity, determine_risk_level
+
+client = OpenAI()
+MODEL = "gpt-4.1-mini"
+
+
+class FinancialModule:
+
+    def run(self, document_text: str) -> FinancialResult:
+        prompt = build_prompt(document_text, FINANCIAL_CRITERIA)
+
+        is_web = any(
+            marker in document_text[:500]
+            for marker in ["=== Source URL:", "=== GitHub Repository:", "=== File: README"]
+        )
+
+        data = call_llm_json(
+            client, MODEL,
+            system_prompt=(
+                "You are a Certified Public Accountant (CPA) and internal controls "
+                "specialist auditing an Accounting Information System (AIS). "
+                "Return ONLY JSON."
+            ),
+            user_prompt=prompt,
+            web_source=is_web,
+        )
+
+        findings = []
+        for item in data["findings"]:
+            finding = FinancialFinding(
+                criterion_id=item["criterion_id"],
+                description=item["description"],
+                score=float(item["score"]),
+                evidence=Evidence(
+                    evidence_id=item["evidence"]["evidence_id"],
+                    evidence_type=item["evidence"]["evidence_type"],
+                    excerpt=item["evidence"]["excerpt"],
+                    source_section=item["evidence"]["source_section"],
+                ),
+                severity=determine_severity(float(item["score"])),
+                weight=next(
+                    c["scoring_methodology"]["weight"] for c in FINANCIAL_CRITERIA
+                    if c["criterion_id"] == item["criterion_id"]
+                ),
+            )
+            findings.append(finding)
+
+        module_score = calculate_module_score(findings)
+        return FinancialResult(
+            module_id="M6_FINANCIAL",
+            module_score=module_score,
+            pass_threshold=0.75,
+            risk_level=determine_risk_level(module_score),
+            findings=findings,
+        )
